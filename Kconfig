@@ -1,0 +1,124 @@
+menu "Storage Configuration"
+
+    config EXAMPLE_FORMAT_IF_MOUNT_FAILED
+        bool "Format the card if mount failed"
+        default n
+        help
+            If this config item is set, format_if_mount_failed will be set to true and the card will be formatted if
+            the mount has failed.
+
+    config UNIT_SD_CARD_MOUNT_POINT
+        string "Prefix for SD card mounting"
+        default "/sdcard"
+        help
+            Directory to mounting SD-Card.
+
+    config UNIT_SPIFLASH_MOUNT_POINT
+        string "Prefix for ESP32 SPI Flash mounting"
+        default "/data"
+        help
+            Directory to mounting SPI Flash data storage partition.
+
+    config AUTO_CHDIR_BEHIND_MOUNTING
+        bool "Auto change dir after mount SD-card"
+        default n
+        help
+            Change default directory (pwd) after mounting the SD-card.
+
+    config DIRECTORY_FOR_AUTOCHANGE
+        string "Directory for auto-change after SD-card mounting"
+        depends on AUTO_CHDIR_BEHIND_MOUNTING
+        default SD_MOUNT_POINT
+        help
+            Directory to jump after mounting.
+
+    config UNIT_MOUNT_SD_CARD
+        bool "Use SD card for file storage"
+        default n
+        help
+            If this config item is set, the file you upload to server can be chosen to save in the SDcard.
+
+    config UNIT_FORMAT_IF_MOUNT_SDCARD_FAILED
+        bool "Format the card if mount failed"
+        default n
+        depends on UNIT_MOUNT_SD_CARD
+        help
+            If this config item is set, the card will be formatted if mount has failed.
+
+    config UNIT_USE_SDMMC_HOST
+        bool "Use SDMMC host"
+        default y
+        depends on UNIT_MOUNT_SD_CARD && SOC_SDMMC_HOST_SUPPORTED
+        help
+            If this config item is set, SDMMC is used to mount the SDcard.
+            Otherwise, will use SPI host to access and mount the SDcard.
+
+    menu "SD card pin configuration (SPI)"
+        depends on UNIT_MOUNT_SD_CARD && !UNIT_USE_SDMMC_HOST
+
+        config UNIT_PIN_MOSI
+            int "MOSI GPIO number"
+            default 15 if IDF_TARGET_ESP32
+            default 35 if IDF_TARGET_ESP32S2
+            default 35 if IDF_TARGET_ESP32S3
+            default 4  # C3 and others
+
+        config UNIT_PIN_MISO
+            int "MISO GPIO number"
+            default 2 if IDF_TARGET_ESP32
+            default 37 if IDF_TARGET_ESP32S2
+            default 37 if IDF_TARGET_ESP32S3
+            default 6  # C3 and others
+
+        config UNIT_PIN_CLK
+            int "CLK GPIO number"
+            default 14 if IDF_TARGET_ESP32
+            default 36 if IDF_TARGET_ESP32S2
+            default 36 if IDF_TARGET_ESP32S3
+            default 5  # C3 and others
+
+        config UNIT_PIN_CS
+            int "CS GPIO number"
+            default 13 if IDF_TARGET_ESP32
+            default 34 if IDF_TARGET_ESP32S2
+            default 34 if IDF_TARGET_ESP32S3
+            default 1  # C3 and others
+
+    endmenu # SD card pin configuration (SPI)
+
+    menu "SD card pin configuration (SDMMC)"
+        depends on UNIT_USE_SDMMC_HOST && SOC_SDMMC_USE_GPIO_MATRIX
+
+        config UNIT_PIN_CMD
+            int "CMD GPIO number"
+            default 35 if IDF_TARGET_ESP32S3
+            default 1
+
+        config UNIT_PIN_CLK
+            int "CLK GPIO number"
+            default 36 if IDF_TARGET_ESP32S3
+            default 2
+
+        config UNIT_PIN_D0
+            int "D0 GPIO number"
+            default 37 if IDF_TARGET_ESP32S3
+            default 3
+
+        config UNIT_PIN_D1
+            int "D1 GPIO number"
+            default 38 if IDF_TARGET_ESP32S3
+            default 4
+
+        config UNIT_PIN_D2
+            int "D2 GPIO number"
+            default 33 if IDF_TARGET_ESP32S3
+            default 5
+
+        config UNIT_PIN_D3
+            int "D3 GPIO number"
+            default 34 if IDF_TARGET_ESP32S3
+            default 6
+
+    endmenu # SD card pin configuration (SDMMC)
+
+endmenu # SD card cfg

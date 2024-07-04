@@ -1,0 +1,100 @@
+/*!
+ * @brief Filesystem on storege device (SD-card etc) control/navigation classes
+ * Header Including file
+ * 	@file: fs_ctrl.cpp
+ *	@author: Solomatov A.A. aso
+ *	@date 28.04.2022 - 27.04.2024
+ *	@version: 0.9
+ */
+
+
+#pragma once
+
+//// is string 'str' is empty or NULL?
+//inline bool empty(const char* const str) {
+//    return str == NULL || str[0] == '\0'; }
+
+
+/*
+ * Предлагаемые команды:
+ *    -	sd - main command for manipulation with SD-caed
+ *	+ m, mount	- mount sdcard, options: [<card>] [<mountpoint>];
+ *	+ u, umount	- unmount sdcard, options: [<card>|<mountpiont>];
+ *	+ pwd		- get current directory name, w/o options;
+ *	+ cd		- change a current directory
+ *	+ ls, dir	- list of files in sdcard, options: [<file pattern>];
+ *	+ cd <dir>	- change dir;
+ *	+ cat <file>	- print file to console
+ *	+ type [<file>]	- type text to cinsile and store it in the file optionally
+ *	+ cp, copy	- copy file, options: [<src file>|<dest file>];
+ *	+ mv, move	- move or rename file, options: [<src file>|<dest file>];
+ */
+
+
+#ifndef __cplusplus
+#error "The sdcard_ctrl file usable in C++ projects only."
+#endif
+
+#if 0
+/// Text representation mode of statbuf (directory entry information)
+inline constexpr const char* statmode_txt(const struct stat* statbuf)
+{
+    return (S_ISLNK(statbuf->st_mode))? "symlink":
+	    (S_ISDIR(statbuf->st_mode))? "directory":
+	    (S_ISCHR(statbuf->st_mode))? "character device":
+	    (S_ISBLK(statbuf->st_mode))? "block device":
+	    (S_ISFIFO(statbuf->st_mode))? "FIFO channel":
+	    (S_ISSOCK(statbuf->st_mode))? "socket":
+					"(unknown type)";
+}; /* stat_mode_txt() */
+#endif
+
+
+
+// Mw delay for the SD/MMC command execution
+//#define SDMMC_COMMAND_TIMEOUT 500
+
+namespace Exec	//-----------------------------------------------------------------------------------------------------
+{
+
+    class Server
+    {
+    public:
+	Server() {};
+	/// Mount default SD-card slot onto path "mountpoint"
+	esp_err_t mount(SDMMC::Device&, SDMMC::Card&, const std::string& mountpoint = MOUNT_POINT_Default);
+	/// Mount SD-card slot "slot_no" onto desired mount path, default mount path is MOUNT_POINT_Default
+	esp_err_t mount(SDMMC::Device&, SDMMC::Card&, int slot_no, const std::string& mountpoint = MOUNT_POINT_Default);
+
+	esp_err_t unmount(SDMMC::Device&/*, const char mountpath[] = NULL*/);	// Unmount SD-card from Device
+//	esp_err_t unmount(sdmmc_card_t *card);	// Unmount SD-card "card", mounted onto default mountpath
+//	esp_err_t unmount(const char *base_path, sdmmc_card_t *card);	// Unmount mounted SD-card "card", mounted onto mountpath
+
+	esp_err_t pwd(SDMMC::Device&);	// print current directory name
+	esp_err_t mkdir(SDMMC::Device&, const std::string& dirname = "");   // create a new directory
+	esp_err_t cd(SDMMC::Device&, const std::string& dirname = "");	// change a current directory
+	esp_err_t ls(SDMMC::Device&, const std::string& pattern = ".");	// print a list of files in the specified directory
+	esp_err_t cp(SDMMC::Device&, const std::string& = "", const std::string& = "");	// copy files src to dest
+	esp_err_t mv(SDMMC::Device&, const std::string& = "", const std::string& = "");	// move files from src to dest
+	esp_err_t rm(SDMMC::Device&, const std::string& pattern = "");	// remove files according a pattern
+	esp_err_t rmdir(SDMMC::Device&, const std::string& dirname = "");   // remove an empty existing directory
+
+	esp_err_t cat(SDMMC::Device&, const std::string& fname = "");	// type file contents
+
+	esp_err_t type();	// type text from keyboard to screen
+	esp_err_t type(SDMMC::Device&, const std::string& fname, size_t = 512);	// type text from keyboard to file and to screen
+
+
+    private:
+
+	esp_err_t ret = ESP_OK;
+
+	static const char* const MOUNT_POINT_Default;
+	static const char* TAG;
+
+    }; /* class Exec::Server */
+
+}; //--[ namespace Exec ]----------------------------------------------------------------------------------------------
+
+
+//--[ sdcard_ctrl.hpp ]----------------------------------------------------------------------------
