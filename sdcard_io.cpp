@@ -474,7 +474,6 @@ Slot& Slot::operator =(sdmmc_slot_config_t&& config) noexcept
 	    ESP_LOGW(__PRETTY_FUNCTION__, "Mounting SD-Card to a mountpoint \"%s\"", mountpoint.c_str());
 	    ESP_LOGW(__PRETTY_FUNCTION__, "SD-Card is%s mounted", mounted()? "": " not");
 	// if card already mounted - exit with error
-//	if (card)
 	if (mounted())
 	{
 	    ESP_LOGE(TAG, "%s: card already mounted at the %s, refuse to mount again", __func__, mountpath_c());
@@ -487,17 +486,14 @@ Slot& Slot::operator =(sdmmc_slot_config_t&& config) noexcept
 
 	ESP_LOGW(__PRETTY_FUNCTION__, "Mountpoint of SD-Card is setted to a \"%s\"", mountpath_c());
 
-	ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self);
-	if (ret != ESP_OK)
+//	ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self);
+//	if (ret != ESP_OK)
+	if ((ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self)) != ESP_OK)
 	{
 	    if (ret == ESP_FAIL)
-//	    	cout << TAG << ": " << "Failed to mount filesystem. "
-//			<< "If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.";
 		ESP_LOGI(TAG, "Failed to mount filesystem. %s",
 			"If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
 	    else
-//		cout << TAG << ": " << "Failed to initialize the card (error " << ret << ", " << esp_err_to_name(ret) << "). "
-//			<< "Make sure SD card lines have pull-up resistors in place.";
 		ESP_LOGI(TAG, "Failed to initialize the card (error %d, %s). %s", ret,  esp_err_to_name(ret),
 			"Make sure SD card lines have pull-up resistors in place.");
 	    return ret;
@@ -540,20 +536,20 @@ esp_err_t Device::unmount()
 	esp_err_t ret;
 
     // if card already mounted - exit with error
-    if (!card)
+    if (!mounted())
     {
 	ESP_LOGE(TAG, "%s: mounted card is absent, nothing to unmount", __func__);
 	return ESP_ERR_NOT_FOUND;
     }; /* if card */
 
-//    ret = esp_vfs_fat_sdcard_unmount(target, card->self);
     ret = esp_vfs_fat_sdcard_unmount(mountpath_c(), card->self);
     //ESP_LOGI(TAG, "Card unmounted");
-    if (ret != ESP_OK)
+//    if (ret != ESP_OK)
+    if ((ret = esp_vfs_fat_sdcard_unmount(mountpath_c(), card->self)) != ESP_OK)
     {
 	ESP_LOGE(TAG, "Error: %d, %s", ret, esp_err_to_name(ret));
 	return ret;
-    }; /* if ret != ESP_OK */
+    }; /* if esp_vfs_fat_sdcard_unmount(mountpath_c(), card->self) != ESP_OK */
 
     ESP_LOGI(TAG, "Card at %s unmounted", mountpath_c());
     card = nullptr;	// card is unmounted - clear this field as unmounted sign

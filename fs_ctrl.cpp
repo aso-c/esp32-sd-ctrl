@@ -140,17 +140,17 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
     // Unmount SD-card, that mounted onto "mountpath"
     esp_err_t Server::unmount(SDMMC::Device& device/*const char mountpath[]*/) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
     {
-	ret = device.unmount(); // @suppress("Method cannot be resolved")
+//	ret = device.unmount(); // @suppress("Method cannot be resolved")
 	//ESP_LOGI(TAG, "Card unmounted");
-	if (ret != ESP_OK)
+//	if (ret != ESP_OK)
+	if ((ret = device.unmount()) != ESP_OK) // @suppress("Method cannot be resolved")
 	    cout << TAG << ": "  << "Unmounting Error: " << ret
 		<< ", " << esp_err_to_name(ret) << endl;
 	else
 	{
 	    cout << TAG << ": " << "Card unmounted" << endl;
-//	    fake_cwd_path[0] = '\0';	// set fake cwd path to: ""
 	    fake_cwd.clear();	// set fake cwd path to: ""
-	}
+	}; /* if device.unmount() != ESP_OK */
 
 	return ret;
     }; /* Server::unmount */
