@@ -101,9 +101,12 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
     /// Mount default SD-card slot onto path "mountpoint", default mountpoint is MOUNT_POINT_Default
     esp_err_t Server::mount(SDMMC::Device& device, SDMMC::Card& card, const std::string& mountpoint) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
     {
+	ESP_LOGI(TAG, "Mounting SD-Cart to a mountpoint %s", mountpoint.c_str());
+
 	if (astr::is_digitex(mountpoint))
 	    return mount(device, card, atoi(mountpoint.c_str())); // @suppress("Invalid arguments")
 
+	ESP_LOGI(TAG, "Mounting SD-Cart to a directory!!!");
 	ret = device.mount(card, mountpoint.c_str()); // @suppress("Method cannot be resolved")
 	if (ret == ESP_OK)
 	{
@@ -146,6 +149,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 	{
 	    cout << TAG << ": " << "Card unmounted" << endl;
 //	    fake_cwd_path[0] = '\0';	// set fake cwd path to: ""
+	    fake_cwd.clear();	// set fake cwd path to: ""
 	}
 
 	return ret;

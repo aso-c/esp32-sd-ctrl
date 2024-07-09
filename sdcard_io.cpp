@@ -471,16 +471,21 @@ Slot& Slot::operator =(sdmmc_slot_config_t&& config) noexcept
     {
 	    esp_err_t ret;
 
+	    ESP_LOGW(__PRETTY_FUNCTION__, "Mounting SD-Card to a mountpoint \"%s\"", mountpoint.c_str());
+	    ESP_LOGW(__PRETTY_FUNCTION__, "SD-Card is%s mounted", mounted()? "": " not");
 	// if card already mounted - exit with error
-	if (card)
+//	if (card)
+	if (mounted())
 	{
 	    ESP_LOGE(TAG, "%s: card already mounted at the %s, refuse to mount again", __func__, mountpath_c());
 //	    return ESP_ERR_INVALID_STATE;
 	    return ESP_ERR_NOT_SUPPORTED;
 	}; /* if card */
 
-	card  = &excard;
 	mountpath(mountpoint);
+	card  = &excard;
+
+	ESP_LOGW(__PRETTY_FUNCTION__, "Mountpoint of SD-Card is setted to a \"%s\"", mountpath_c());
 
 	ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self);
 	if (ret != ESP_OK)

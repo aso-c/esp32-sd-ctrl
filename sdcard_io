@@ -746,7 +746,24 @@ struct Device
     /// get mountpath, C string version
     const char *mountpath_c() const {return target.c_str();};
     // set mountpath, return old mountpath
-    std::string mountpath(const std::string& newpath) {std::string oldpath = newpath; if (!mounted()) std::swap(oldpath, target); return oldpath;};
+//    std::string mountpath(const std::string& newpath) {std::string oldpath = newpath; if (!mounted()) std::swap(oldpath, target); return oldpath;};
+    std::string mountpath(std::string newpath)
+    {
+	ESP_LOGI("Device::mountpath()", "Before operation: new path is \"%s\", target is: \"%s\"", newpath.c_str(), target.c_str());
+	ESP_LOGI("Device::mountpath()", "Card mount status: [%s]", mounted()? "mounted": "not a mounted");
+	/*std::string oldpath = newpath;*/
+	if (!mounted())
+	{
+		ESP_LOGI("Device::mountpath()", "If not mounted, before std::swap: new path is \"%s\", target is: \"%s\"", newpath.c_str(), target.c_str());
+//	    std::swap(oldpath, target);
+	    std::swap(newpath, target);
+		ESP_LOGI("Device::mountpath()", "If not mounted, after std::swap: new path is \"%s\", target is: \"%s\"", newpath.c_str(), target.c_str());
+	}
+	else ESP_LOGE("Device::mountpath()", "Card is mounted!!!");
+ //	return oldpath;
+	ESP_LOGI("Device::mountpath()", "After check operation, before return result: new path is \"%s\", target is: \"%s\"", newpath.c_str(), target.c_str());
+	return newpath;
+    };
     std::string clean_mountpath() {return mountpath("");};
 
     // use сarefully! may be incorrect behavior!
