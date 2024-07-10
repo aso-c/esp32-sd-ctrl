@@ -64,7 +64,7 @@
 using namespace std;
 
 
-#define SD_MOUNT_POINT CONFIG_UNIT_SD_CARD_MOUNT_POINT //"/sdcard"
+#define SD_MOUNT_POINT CONFIG_UNIT_SD_CARD_MOUNT_POINT
 
 
 /*
@@ -85,8 +85,7 @@ namespace Exec	//---------------------------------------------------------------
 {
 
 //--[ instance of the cwd_emulation ]----------------------------------------------------------------------------------
-//	char cwd_path_buff[PATH_MAX] = "";	// simulation current dir at this device
-	fs::CWD_emulating fake_cwd(/*cwd_path_buff, sizeof(cwd_path_buff)*/SD_MOUNT_POINT);
+	fs::CWD_emulating fake_cwd(SD_MOUNT_POINT);
 
 
 //    static const char *TAG = "SD/MMC service";
@@ -103,7 +102,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     /// Mount default SD-card slot onto path "mountpoint", default mountpoint is MOUNT_POINT_Default
-    esp_err_t Server::mount(SDMMC::Device& device, SDMMC::Card& card, const std::string& mountpoint) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
+    esp_err_t Server::mount(SD::Device& device, SD::Card& card, const std::string& mountpoint) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
     {
 	ESP_LOGI(TAG, "Mounting SD-Cart to a mountpoint %s", mountpoint.c_str());
 
@@ -111,12 +110,12 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 	    return mount(device, card, atoi(mountpoint.c_str())); // @suppress("Invalid arguments")
 
 	ESP_LOGI(TAG, "Mounting SD-Cart to a directory!!!");
-	ret = device.mount(card, mountpoint.c_str()); // @suppress("Method cannot be resolved")
+	ret = device.mount(card, mountpoint); // @suppress("Method cannot be resolved")
 	if (ret == ESP_OK)
 	{
 #ifdef CONFIG_AUTO_CHDIR_BEHIND_MOUNTING
-	    fake_cwd.change(mountpoint.c_str());
-	    ESP_LOGI(TAG, "Current directory autochanged to: %s", fake_cwd.current().c_str());
+	    fake_cwd.change(mountpoint);
+	    ESP_LOGI(TAG, "Current directory autochanged to: %s", fake_cwd.get().c_str());
 #else
 //	    change_currdir("/");
 	    fake_cwd.get(fake_cwd_path, sizeof(fake_cwd_path));	// set fake_cwd according system pwd (through get_cwd())
@@ -128,10 +127,10 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     /// Mount SD-card slot "slot_no" onto specified mount path, default mountpoint is MOUNT_POINT_Default
-    esp_err_t Server::mount(SDMMC::Device& device, SDMMC::Card& card, int slot_no, const std::string& mountpoint) // @suppress("Member declaration not found") // @suppress("Type cannot be resolved")
+    esp_err_t Server::mount(SD::Device& device, SD::Card& card, int slot_no, const std::string& mountpoint) // @suppress("Member declaration not found") // @suppress("Type cannot be resolved")
     {
 	device.slot_no(slot_no); // @suppress("Method cannot be resolved")
-	return device.mount(card, mountpoint.c_str()); // @suppress("Method cannot be resolved")
+	return device.mount(card, mountpoint); // @suppress("Method cannot be resolved")
     }; /* Server::mount */
 
 
@@ -142,11 +141,8 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
     //------------------------------------------------------------------------------------------
 
     // Unmount SD-card, that mounted onto "mountpath"
-    esp_err_t Server::unmount(SDMMC::Device& device/*const char mountpath[]*/) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
+    esp_err_t Server::unmount(SD::Device& device/*const char mountpath[]*/) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
     {
-//	ret = device.unmount(); // @suppress("Method cannot be resolved")
-	//ESP_LOGI(TAG, "Card unmounted");
-//	if (ret != ESP_OK)
 	if ((ret = device.unmount()) != ESP_OK) // @suppress("Method cannot be resolved")
 	    cout << TAG << ": "  << "Unmounting Error: " << ret
 		<< ", " << esp_err_to_name(ret) << endl;
@@ -183,25 +179,33 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     // print current directory name
-    esp_err_t Server::pwd(SDMMC::Device& device)
+    esp_err_t Server::pwd(SD::Device& device)
     {
 #if __cplusplus < 201703L
 
-	    const std::string buf = fake_cwd.get();
+//	    const std::string buf = fake_cwd.get();
+//
+//	cout << endl
+//	    << "PWD is: \"" << buf << '"' << endl
+//	    << endl;
 
 	cout << endl
-	    << "PWD is: \"" << buf << '"' << endl
+	    << "PWD is: \"" << fake_cwd.get() << '"' << endl
 	    << endl;
 
 	return ESP_OK;
 #else	// __cplusplus < 201703L
 
-	    const std::string buf = fake_cwd.get();
+//	    const std::string buf = fake_cwd.get();
+//
+//	if (astr::is_space(buf))
+//	    return errno;
+//	cout << endl
+//	    << "PWD is: \"" << buf << '"' << endl
+//	    << endl;
 
-	if (astr::is_space(buf))
-	    return errno;
 	cout << endl
-	    << "PWD is: \"" << buf << '"' << endl
+	    << "PWD is: \"" << fake_cwd.get() << '"' << endl
 	    << endl;
 
 	return ESP_OK;
@@ -212,9 +216,9 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 #define CMD_NM "mkdir"
     // create a new directory
-    esp_err_t Server::mkdir(SDMMC::Device& device, const std::string& dirname)
+    esp_err_t Server::mkdir(SD::Device& device, const std::string& dirname)
     {
-	if (!fake_cwd.valid(dirname.c_str()))
+	if (!fake_cwd.valid(dirname))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: the new directory name \"%s\" is invalid", __func__, dirname.c_str());
 	    return ESP_ERR_NOT_FOUND;
@@ -230,7 +234,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #if __cplusplus < 201703L
 
 	    struct stat statbuf;
-	    std::string path = fake_cwd.compose(dirname/*.c_str()*/);
+	    std::string path = fake_cwd.compose(dirname);
 
 	ESP_LOGI(CMD_TAG_PRFX, "%s: Create directory with name \"%s\", real path is %s", __func__, dirname.c_str(), path.c_str());
 
@@ -251,7 +255,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #else	// __cplusplus < 201703L
 
 	    struct stat statbuf;
-	    std::string path = fake_cwd.compose(dirname/*.c_str()*/);
+	    std::string path = fake_cwd.compose(dirname);
 
 	    ESP_LOGI(CMD_TAG_PRFX, "%s: Create directory with name \"%s\", real path is %s", __func__, dirname.c_str(), path.c_str());
 
@@ -275,7 +279,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #undef CMD_NM
 #define CMD_NM "rmdir"
 // delete empty directory
-    esp_err_t Server::rmdir(SDMMC::Device& device, const std::string& dirname)
+    esp_err_t Server::rmdir(SD::Device& device, const std::string& dirname)
     {
 	if (!fake_cwd.valid(dirname.c_str()))
 	{
@@ -292,7 +296,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #if __cplusplus < 201703L
 
 	    struct stat st;
-	    std::string path = fake_cwd.compose(dirname/*.c_str()*/);
+	    std::string path = fake_cwd.compose(dirname);
 
 	ESP_LOGI(CMD_TAG_PRFX, "%s: Delete directory <%s>, real path is %s", __func__, dirname.c_str(), path.c_str());
 
@@ -341,7 +345,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 #else	// __cplusplus < 201703L
 	    struct stat st;
-	    std::string path = fake_cwd.compose(dirname/*.c_str()*/);
+	    std::string path = fake_cwd.compose(dirname);
 
 	ESP_LOGI(CMD_TAG_PRFX, "%s: Delete directory <%s>, real path is %s", __func__, dirname.c_str(), path.c_str());
 
@@ -398,11 +402,11 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "cd"
 
     // change a current directory
-    esp_err_t Server::cd(SDMMC::Device& device, const std::string& dirname)
+    esp_err_t Server::cd(SD::Device& device, const std::string& dirname)
     {
 	    esp_err_t err;
 
-	if (!fake_cwd.valid(dirname.c_str()))
+	if (!fake_cwd.valid(dirname))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: the directory name \"%s\" is invalid", __func__, dirname.c_str());
 	    return ESP_ERR_NOT_FOUND;
@@ -465,10 +469,10 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     // print a list of files in the specified directory
-    esp_err_t Server::ls(SDMMC::Device& device, const std::string& pattern)
+    esp_err_t Server::ls(SD::Device& device, const std::string& pattern)
     {
 	ESP_LOGD(CMD_TAG_PRFX, "%s: pattern is             : \"%s\"", __func__, pattern.c_str());
-	ESP_LOGD(CMD_TAG_PRFX, "%s: processed inner pattern: \"%s\"", __func__, fake_cwd.compose(pattern/*.c_str()*/).c_str());
+	ESP_LOGD(CMD_TAG_PRFX, "%s: processed inner pattern: \"%s\"", __func__, fake_cwd.compose(pattern).c_str());
 	if (!fake_cwd.valid(pattern.c_str()))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: pattern \"%s\" is invalid", __func__, pattern.c_str());
@@ -607,7 +611,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define __CP_OVERWRITE_FILE__
 
     // copy files according a pattern
-    esp_err_t Server::cp(SDMMC::Device& device, const std::string& src_raw, const std::string& dest_raw)
+    esp_err_t Server::cp(SD::Device& device, const std::string& src_raw, const std::string& dest_raw)
     {
 	if (astr::is_space(src_raw))
 	{
@@ -624,19 +628,19 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 	    return ESP_ERR_INVALID_ARG;
 	}; /* if astr::is_space(dest_raw) */
 
-	if (!fake_cwd.valid(src_raw.c_str()))
+	if (!fake_cwd.valid(src_raw))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: the source file name \"%s\" is invalid", __func__, src_raw.c_str());
 	    return ESP_ERR_NOT_FOUND;
-	}; /* if !fake_cwd.valid(src_raw.c_str()) */
+	}; /* if !fake_cwd.valid(src_raw) */
 
-	if (!fake_cwd.valid(dest_raw.c_str()))
+	if (!fake_cwd.valid(dest_raw))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: the destination file name \"%s\" is invalid", __func__, dest_raw.c_str());
 	    return ESP_ERR_NOT_FOUND;
-	}; /* if !fake_cwd.valid(dest_raw.c_str()) */
+	}; /* if !fake_cwd.valid(dest_raw) */
 
-	    std::string src = fake_cwd.compose(src_raw/*.c_str()*/);
+	    std::string src = fake_cwd.compose(src_raw);
 
 #if __cplusplus < 201703L
 
@@ -733,7 +737,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 	}; /* if (S_ISDIR(st.st_mode)) */
 
 	    std::string srcbase = basename(src.c_str());
-	    std::string dest = fake_cwd.compose(dest_raw/*.c_str()*/);
+	    std::string dest = fake_cwd.compose(dest_raw);
 
 	    // Check if destination file is exist
 	if (stat(dest.c_str(), &st) == 0)
@@ -818,7 +822,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "mv"
 
     // move files according a pattern
-    esp_err_t Server::mv(SDMMC::Device& device, const std::string& src_raw, const std::string& dest_raw)
+    esp_err_t Server::mv(SD::Device& device, const std::string& src_raw, const std::string& dest_raw)
     {
 
 	if (astr::is_space(src_raw))
@@ -1015,7 +1019,6 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: Error %d: %s", __func__, errno, strerror(errno));
 	    return ESP_FAIL;
 	}; /* if rename(src.c_str(), dest.c_str()) != 0 */
-//	ESP_LOGW(CMD_TAG_PRFX CMD_NM, "the command '%s' now is partyally implemented for C edition", __func__);
 	return ESP_OK;
 
     }; /* Server::mv */
@@ -1026,17 +1029,17 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "rm"
 
     // remove files according a pattern
-    esp_err_t Server::rm(SDMMC::Device& device, const std::string& pattern)
+    esp_err_t Server::rm(SD::Device& device, const std::string& pattern)
     {
 
-	if (!fake_cwd.valid(pattern.c_str()))
+	if (!fake_cwd.valid(pattern))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: pattern \"%s\" is invalid", __func__, pattern.c_str());
 	    return ESP_ERR_NOT_FOUND;
 	}; /* !device.valid_path(pattern) */
 
 	    struct stat st;
-	    std::string path = fake_cwd.compose(pattern/*.c_str()*/);
+	    std::string path = fake_cwd.compose(pattern);
 
 	if (astr::is_space(pattern))
 	{
@@ -1111,7 +1114,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "cat"
 
     // type file contents
-    esp_err_t Server::cat(SDMMC::Device& device, const std::string& fname)
+    esp_err_t Server::cat(SD::Device& device, const std::string& fname)
     {
 
 	if (!fake_cwd.valid(fname.c_str()))
@@ -1136,15 +1139,9 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 	    return ESP_ERR_INVALID_ARG;
 	}; /* if empty(fname) */ /* if fname == NULL || strcmp(fname, "") */
 
-#if 1
 	cout << endl
 	    << aso::format("*** Printing contents of the file <%s> (realname '%s'). ***") % fname % fullname  << endl
 	    << endl;
-#else
-	cout << endl
-	    << "*** Printing contents of the file <" << fname << "> (realname '" << fullname << "'). ***"  << endl
-	    << endl;
-#endif
 
 #if __cplusplus < 201703L
 
@@ -1272,16 +1269,16 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     // type text from keyboard to file and to screen
-    esp_err_t Server::type(SDMMC::Device& device, const std::string& fname, size_t sector_size)
+    esp_err_t Server::type(SD::Device& device, const std::string& fname, size_t sector_size)
     {
-	if (!fake_cwd.valid(fname.c_str()))
+	if (!fake_cwd.valid(fname))
 	{
 	    ESP_LOGE(CMD_TAG_PRFX, "%s: pattern \"%s\" is invalid", __func__, fname.c_str());
 	    return ESP_ERR_NOT_FOUND;
 	}; /* !device.valid_path(fname) */
 
 	    struct stat st;
-	    std::string fullname = fake_cwd.compose(fname/*.c_str()*/);
+	    std::string fullname = fake_cwd.compose(fname);
 	    FILE *storage = NULL;
 
 	// Test file 'fname' for existing
@@ -1337,15 +1334,16 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 		storage = fopen(fullname.c_str(), "w");
 		break;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough="
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wimplicit-fallthrough="
 	    case '\n':
 		cout << "Enter char '\\n'" << endl; // @suppress("No break at end of case")
+		[[fallthrough]];
 	    case 'n':
 		ESP_LOGW(CMD_TAG_PRFX ":" CMD_NM " <filename>", "User cancel opening file %s.", fname.c_str());
 		return ESP_ERR_NOT_FOUND;
 		break;
-#pragma GCC diagnostic pop
+//#pragma GCC diagnostic pop
 
 	    default:
 		ESP_LOGW(CMD_TAG_PRFX CMD_NM, "Error: H.z. cho in input, input char value is: [%d]", (int)c);

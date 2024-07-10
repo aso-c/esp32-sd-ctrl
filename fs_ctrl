@@ -62,27 +62,27 @@ namespace Exec	//---------------------------------------------------------------
     public:
 	Server() {};
 	/// Mount default SD-card slot onto path "mountpoint"
-	esp_err_t mount(SDMMC::Device&, SDMMC::Card&, const std::string& mountpoint = MOUNT_POINT_Default);
+	esp_err_t mount(SD::Device&, SD::Card&, const std::string& mountpoint = MOUNT_POINT_Default);
 	/// Mount SD-card slot "slot_no" onto desired mount path, default mount path is MOUNT_POINT_Default
-	esp_err_t mount(SDMMC::Device&, SDMMC::Card&, int slot_no, const std::string& mountpoint = MOUNT_POINT_Default);
+	esp_err_t mount(SD::Device&, SD::Card&, int slot_no, const std::string& mountpoint = MOUNT_POINT_Default);
 
-	esp_err_t unmount(SDMMC::Device&/*, const char mountpath[] = NULL*/);	// Unmount SD-card from Device
+	esp_err_t unmount(SD::Device&/*, const char mountpath[] = NULL*/);	// Unmount SD-card from Device
 //	esp_err_t unmount(sdmmc_card_t *card);	// Unmount SD-card "card", mounted onto default mountpath
 //	esp_err_t unmount(const char *base_path, sdmmc_card_t *card);	// Unmount mounted SD-card "card", mounted onto mountpath
 
-	esp_err_t pwd(SDMMC::Device&);	// print current directory name
-	esp_err_t mkdir(SDMMC::Device&, const std::string& dirname = "");   // create a new directory
-	esp_err_t cd(SDMMC::Device&, const std::string& dirname = "");	// change a current directory
-	esp_err_t ls(SDMMC::Device&, const std::string& pattern = ".");	// print a list of files in the specified directory
-	esp_err_t cp(SDMMC::Device&, const std::string& = "", const std::string& = "");	// copy files src to dest
-	esp_err_t mv(SDMMC::Device&, const std::string& = "", const std::string& = "");	// move files from src to dest
-	esp_err_t rm(SDMMC::Device&, const std::string& pattern = "");	// remove files according a pattern
-	esp_err_t rmdir(SDMMC::Device&, const std::string& dirname = "");   // remove an empty existing directory
+	esp_err_t pwd(SD::Device&);	// print current directory name
+	esp_err_t mkdir(SD::Device&, const std::string& dirname = "");   // create a new directory
+	esp_err_t cd(SD::Device&, const std::string& dirname = "");	// change a current directory
+	esp_err_t ls(SD::Device&, const std::string& pattern = ".");	// print a list of files in the specified directory
+	esp_err_t cp(SD::Device&, const std::string& = "", const std::string& = "");	// copy files src to dest
+	esp_err_t mv(SD::Device&, const std::string& = "", const std::string& = "");	// move files from src to dest
+	esp_err_t rm(SD::Device&, const std::string& pattern = "");	// remove files according a pattern
+	esp_err_t rmdir(SD::Device&, const std::string& dirname = "");   // remove an empty existing directory
 
-	esp_err_t cat(SDMMC::Device&, const std::string& fname = "");	// type file contents
+	esp_err_t cat(SD::Device&, const std::string& fname = "");	// type file contents
 
 	esp_err_t type();	// type text from keyboard to screen
-	esp_err_t type(SDMMC::Device&, const std::string& fname, size_t = 512);	// type text from keyboard to file and to screen
+	esp_err_t type(SD::Device&, const std::string& fname, size_t = 512);	// type text from keyboard to file and to screen
 
 
     private:

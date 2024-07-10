@@ -55,7 +55,7 @@
 using namespace std;
 
 
-#define SD_MOUNT_POINT "/sdcard"
+//#define SD_MOUNT_POINT "/sdcard"
 
 
 /*
@@ -72,9 +72,10 @@ using namespace std;
  *	+ mv, move	- move or rename file, options: [<src file>|<dest file>];
  */
 
-namespace SDMMC	//-----------------------------------------------------------------------------------------------------
+namespace SD //--------------------------------------------------------------------------------------------------------
 {
 
+    [[maybe_unused]]
     static const char *TAG = "SD/MMC service";
 
 
@@ -467,7 +468,7 @@ Slot& Slot::operator =(sdmmc_slot_config_t&& config) noexcept
 
 
     // Mount default SD-card slot onto path "mountpoint"
-    esp_err_t Device::mount(Card& excard, const std::string& mountpoint)
+    esp_err_t Device::mount(Card& excard, /*const*/ std::string/*&*/ mountpoint)
     {
 	    esp_err_t ret;
 
@@ -481,7 +482,7 @@ Slot& Slot::operator =(sdmmc_slot_config_t&& config) noexcept
 	    return ESP_ERR_NOT_SUPPORTED;
 	}; /* if card */
 
-	mountpath(mountpoint);
+	mountpath(std::move(mountpoint));
 	card  = &excard;
 
 	ESP_LOGW(__PRETTY_FUNCTION__, "Mountpoint of SD-Card is setted to a \"%s\"", mountpath_c());
@@ -637,7 +638,7 @@ esp_err_t Card::cis_info(FILE* outfile)
 
 
 
-}; /* namespace SDMMC */  //-------------------------------------------------------------------------------------------
+}; /* namespace SD */  //----------------------------------------------------------------------------------------------
 
 
 //--[ sdcard_ctrl.cpp ]----------------------------------------------------------------------------
