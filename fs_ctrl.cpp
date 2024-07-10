@@ -45,6 +45,10 @@
 //#endif // ifdef __PURE_C__
 
 #include <esp_vfs_fat.h>
+#include "sdkconfig.h"
+
+
+
 #include <sdmmc_cmd.h>
 #include <driver/sdmmc_host.h>
 
@@ -60,7 +64,7 @@
 using namespace std;
 
 
-#define SD_MOUNT_POINT "/sdcard"
+#define SD_MOUNT_POINT CONFIG_UNIT_SD_CARD_MOUNT_POINT //"/sdcard"
 
 
 /*
@@ -80,9 +84,9 @@ using namespace std;
 namespace Exec	//-----------------------------------------------------------------------------------------------------
 {
 
-//--[ inner instance of the cwd_emulation ]----------------------------------------------------------------------------
-	char cwd_path_buff[PATH_MAX] = "";	// simulation current dir at this device
-	fs::CWD_emulating fake_cwd(cwd_path_buff, sizeof(cwd_path_buff));
+//--[ instance of the cwd_emulation ]----------------------------------------------------------------------------------
+//	char cwd_path_buff[PATH_MAX] = "";	// simulation current dir at this device
+	fs::CWD_emulating fake_cwd(/*cwd_path_buff, sizeof(cwd_path_buff)*/SD_MOUNT_POINT);
 
 
 //    static const char *TAG = "SD/MMC service";
