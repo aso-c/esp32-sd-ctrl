@@ -102,7 +102,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     /// Mount default SD-card slot onto path "mountpoint", default mountpoint is MOUNT_POINT_Default
-    esp_err_t Server::mount(SD::Device& device, SD::Card& card, const std::string& mountpoint) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
+    esp_err_t Server::mount(SD::MMC::Device& device, SD::MMC::Card& card, const std::string& mountpoint) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
     {
 	ESP_LOGI(TAG, "Mounting SD-Cart to a mountpoint %s", mountpoint.c_str());
 
@@ -127,7 +127,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     /// Mount SD-card slot "slot_no" onto specified mount path, default mountpoint is MOUNT_POINT_Default
-    esp_err_t Server::mount(SD::Device& device, SD::Card& card, int slot_no, const std::string& mountpoint) // @suppress("Member declaration not found") // @suppress("Type cannot be resolved")
+    esp_err_t Server::mount(SD::MMC::Device& device, SD::MMC::Card& card, int slot_no, const std::string& mountpoint) // @suppress("Member declaration not found") // @suppress("Type cannot be resolved")
     {
 	device.slot_no(slot_no); // @suppress("Method cannot be resolved")
 	return device.mount(card, mountpoint); // @suppress("Method cannot be resolved")
@@ -141,7 +141,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
     //------------------------------------------------------------------------------------------
 
     // Unmount SD-card, that mounted onto "mountpath"
-    esp_err_t Server::unmount(SD::Device& device/*const char mountpath[]*/) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
+    esp_err_t Server::unmount(SD::MMC::Device& device/*const char mountpath[]*/) // @suppress("Type cannot be resolved") // @suppress("Member declaration not found")
     {
 	if ((ret = device.unmount()) != ESP_OK) // @suppress("Method cannot be resolved")
 	    cout << TAG << ": "  << "Unmounting Error: " << ret
@@ -179,7 +179,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     // print current directory name
-    esp_err_t Server::pwd(SD::Device& device)
+    esp_err_t Server::pwd(SD::MMC::Device& device)
     {
 #if __cplusplus < 201703L
 
@@ -216,7 +216,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 #define CMD_NM "mkdir"
     // create a new directory
-    esp_err_t Server::mkdir(SD::Device& device, const std::string& dirname)
+    esp_err_t Server::mkdir(SD::MMC::Device& device, const std::string& dirname)
     {
 	if (!fake_cwd.valid(dirname))
 	{
@@ -279,7 +279,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #undef CMD_NM
 #define CMD_NM "rmdir"
 // delete empty directory
-    esp_err_t Server::rmdir(SD::Device& device, const std::string& dirname)
+    esp_err_t Server::rmdir(SD::MMC::Device& device, const std::string& dirname)
     {
 	if (!fake_cwd.valid(dirname.c_str()))
 	{
@@ -402,7 +402,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "cd"
 
     // change a current directory
-    esp_err_t Server::cd(SD::Device& device, const std::string& dirname)
+    esp_err_t Server::cd(SD::MMC::Device& device, const std::string& dirname)
     {
 	    esp_err_t err;
 
@@ -469,7 +469,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     // print a list of files in the specified directory
-    esp_err_t Server::ls(SD::Device& device, const std::string& pattern)
+    esp_err_t Server::ls(SD::MMC::Device& device, const std::string& pattern)
     {
 	ESP_LOGD(CMD_TAG_PRFX, "%s: pattern is             : \"%s\"", __func__, pattern.c_str());
 	ESP_LOGD(CMD_TAG_PRFX, "%s: processed inner pattern: \"%s\"", __func__, fake_cwd.compose(pattern).c_str());
@@ -611,7 +611,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define __CP_OVERWRITE_FILE__
 
     // copy files according a pattern
-    esp_err_t Server::cp(SD::Device& device, const std::string& src_raw, const std::string& dest_raw)
+    esp_err_t Server::cp(SD::MMC::Device& device, const std::string& src_raw, const std::string& dest_raw)
     {
 	if (astr::is_space(src_raw))
 	{
@@ -822,7 +822,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "mv"
 
     // move files according a pattern
-    esp_err_t Server::mv(SD::Device& device, const std::string& src_raw, const std::string& dest_raw)
+    esp_err_t Server::mv(SD::MMC::Device& device, const std::string& src_raw, const std::string& dest_raw)
     {
 
 	if (astr::is_space(src_raw))
@@ -1029,7 +1029,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "rm"
 
     // remove files according a pattern
-    esp_err_t Server::rm(SD::Device& device, const std::string& pattern)
+    esp_err_t Server::rm(SD::MMC::Device& device, const std::string& pattern)
     {
 
 	if (!fake_cwd.valid(pattern))
@@ -1114,7 +1114,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 #define CMD_NM "cat"
 
     // type file contents
-    esp_err_t Server::cat(SD::Device& device, const std::string& fname)
+    esp_err_t Server::cat(SD::MMC::Device& device, const std::string& fname)
     {
 
 	if (!fake_cwd.valid(fname.c_str()))
@@ -1269,7 +1269,7 @@ const char* const Server::MOUNT_POINT_Default = SD_MOUNT_POINT;
 
 
     // type text from keyboard to file and to screen
-    esp_err_t Server::type(SD::Device& device, const std::string& fname, size_t sector_size)
+    esp_err_t Server::type(SD::MMC::Device& device, const std::string& fname, size_t sector_size)
     {
 	if (!fake_cwd.valid(fname))
 	{
