@@ -464,7 +464,7 @@ namespace SD //-----------------------------------------------------------------
 
 
     // Mount default SD-card slot onto path "mountpoint"
-    esp_err_t MMC::Device::mount(Card& excard, /*const*/ std::string/*&*/ mountpoint)
+    esp_err_t MMC::Device::mount(Card& excard, std::string mountpoint)
     {
 	    esp_err_t ret;
 

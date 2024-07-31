@@ -737,7 +737,7 @@ struct Device
 
     Host& host() {return _host;};
 
-    esp_err_t mount(Card&, /*const*/ std::string/*&*/ mountpoint);	// Mount default SD-card slot onto path "mountpoint"
+    esp_err_t mount(Card&, std::string mountpoint);	// Mount default SD-card slot onto path "mountpoint"
 //    esp_err_t mount(Card&, int slot_no);		// Mount SD-card slot "slot_no" onto default mount path
 //    esp_err_t mount(Card&, int slot_no, const std::string&);  // Mount SD-card slot "slot_no" onto default mount path
 
@@ -749,7 +749,7 @@ struct Device
 
 
     /// get mountpath
-    std::string mountpath() const {return target;};
+    const std::string& mountpath() const {return target;};
     /// get mountpath, C string version
     const char *mountpath_c() const {return target.c_str();};
     // set mountpath, return old mountpath
