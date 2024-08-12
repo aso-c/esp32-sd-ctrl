@@ -1,0 +1,73 @@
+/*
+ * SD-card SPI connected input/output classes
+ * Include file
+ * 	File: sdspi_io
+ *	Author:  aso (Solomatov A.A.)
+ *	Created: 09.09.2024
+ *	Version: 0.1
+ */
+
+
+#pragma once
+
+
+#ifndef __cplusplus
+#error "The sdcard_ctrl file usable in C++ projects only."
+#endif
+
+
+
+
+namespace SD //--------------------------------------------------------------------------------------------------------
+{
+
+
+    namespace SPI
+    {
+	struct Slot
+	{
+	    Slot();	// Default config - Slot configured to Slot_1
+	    Slot(const Slot&);		// really copy constructor
+	    Slot(const sdspi_device_config_t&);	// copy constructor
+	    Slot(sdspi_device_config_t&&);	// move constructor
+//	    enum number {_0 = SDMMC_HOST_SLOT_0, null=_0, _1 = SDMMC_HOST_SLOT_1, one=_1, out_of_range = -1};
+
+	    enum number {
+	    //SPI1 can be used as GPSPI only on ESP32
+	        spi1 = SPI1_HOST,    ///< SPI1
+	        spi2 = SPI2_HOST,    ///< SPI2
+	    #if SOC_SPI_PERIPH_NUM > 2
+	        spi3 = SPI3_HOST,    ///< SPI3
+	    #endif
+	        spi_max = SPI_HOST_MAX,   ///< invalid host value
+	    }; /* SD::SPI::Slot::number */
+
+	    Slot(number);	// initializing Slot cfg by its number
+
+	    Slot& operator =(const Slot&);
+	    Slot& operator =(const sdspi_device_config_t&);
+	    Slot& operator =(sdspi_device_config_t&&) noexcept;
+
+	    operator sdspi_device_config_t&() {return cfg;};
+	    operator sdspi_device_config_t*() {return &cfg;};
+
+//	    // This initializes the slot without card detect (CD) and write protect (WP) signals.
+//	    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
+//	    //sdmmc_slot_config_t cfg = SDMMC_SLOT_CONFIG_DEFAULT(); // @suppress("Invalid arguments")
+	    sdspi_device_config_t cfg = SDSPI_DEVICE_CONFIG_DEFAULT();
+
+	private:
+
+	    friend class Host;
+
+	}; /* struct Slot */
+
+
+
+    }; //--[ namespace SD::SPI ]---------------------------------------------------------------------------------------
+
+
+}; //--[ namespace SD ]------------------------------------------------------------------------------------------------
+
+
+//--[ sdcard_io ]------------------------------------------------------------------------------------------------------

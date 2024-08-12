@@ -46,7 +46,11 @@
 #include <sdmmc_cmd.h>
 #include <driver/sdmmc_host.h>
 
+#include <hal/spi_types.h>
+#include <driver/sdspi_host.h>
+
 #include "sdcard_io"
+#include "sdspi_io"
 
 #include "extrstream"
 #include "astring.h"
@@ -466,25 +470,20 @@ namespace SD //-----------------------------------------------------------------
     // Mount default SD-card slot onto path "mountpoint"
     esp_err_t MMC::Device::mount(Card& excard, std::string mountpoint)
     {
-	    esp_err_t ret;
-
-	    ESP_LOGW(__PRETTY_FUNCTION__, "Mounting SD-Card to a mountpoint \"%s\"", mountpoint.c_str());
-	    ESP_LOGW(__PRETTY_FUNCTION__, "SD-Card is%s mounted", mounted()? "": " not");
+	ESP_LOGI(__PRETTY_FUNCTION__, "Mounting SD-Card to a mountpoint \"%s\"", mountpoint.c_str());
 	// if card already mounted - exit with error
 	if (mounted())
 	{
 	    ESP_LOGE(TAG, "%s: card already mounted at the %s, refuse to mount again", __func__, mountpath_c());
-//	    return ESP_ERR_INVALID_STATE;
 	    return ESP_ERR_NOT_SUPPORTED;
-	}; /* if card */
+	}; /* if mounted() */
+//	ESP_LOGW(__PRETTY_FUNCTION__, "SD-Card is not mounted");
 
 	mountpath(std::move(mountpoint));
 	card  = &excard;
 
-	ESP_LOGW(__PRETTY_FUNCTION__, "Mountpoint of SD-Card is setted to a \"%s\"", mountpath_c());
+	ESP_LOGI(__PRETTY_FUNCTION__, "SD-Card mountpoint is set to a \"%s\"", mountpath_c());
 
-//	ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self);
-//	if (ret != ESP_OK)
 	if ((ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self)) != ESP_OK)
 	{
 	    if (ret == ESP_FAIL)
@@ -494,24 +493,12 @@ namespace SD //-----------------------------------------------------------------
 		ESP_LOGI(TAG, "Failed to initialize the card (error %d, %s). %s", ret,  esp_err_to_name(ret),
 			"Make sure SD card lines have pull-up resistors in place.");
 	    return ret;
-	}; /* if ret != ESP_OK */
+	}; /* if (ret = esp_vfs_fat_sdmmc_mount(mountpath_c(), _host, _host.slot(), &mnt, &card->self)) != ESP_OK */
 
 	ESP_LOGI(TAG, "Filesystem mounted at the %s", mountpath_c());
 
-#if 0
-#ifdef CONFIG_AUTO_CHDIR_BEHIND_MOUNTING
-	//    change_currdir(DIRECTORY_FOR_AUTOCHANGE);
-	change_currdir(mountpath());
-	ESP_LOGI(TAG, "Current directory autochanged to: %s", fake_cwd_path);
-#else
-//	change_currdir("/");
-	getcwd(fake_cwd_path, sizeof(fake_cwd_path));	// set fake_cwd according system pwd (through get_cwd())
-	ESP_LOGI(TAG, "Current directory set to: %s,  according system pwd", fake_cwd_path);
-#endif	// defined CONFIG_AUTO_CHDIR_BEHIND_MOUNTING
-#endif // *
-
 	return ret;
-    }; /* Device::mount(Card&, const std::string&) */
+    }; /* SD::MMC::Device::mount(Card&, const std::string&) */
 
 
 
@@ -530,7 +517,7 @@ namespace SD //-----------------------------------------------------------------
     esp_err_t MMC::Device::unmount()
     {
 
-	    esp_err_t ret;
+//	    esp_err_t ret;
 
 	// if card already mounted - exit with error
 	if (!mounted())
@@ -539,9 +526,6 @@ namespace SD //-----------------------------------------------------------------
 	    return ESP_ERR_NOT_FOUND;
 	}; /* if card */
 
-	ret = esp_vfs_fat_sdcard_unmount(mountpath_c(), card->self);
-	//ESP_LOGI(TAG, "Card unmounted");
-	//    if (ret != ESP_OK)
 	if ((ret = esp_vfs_fat_sdcard_unmount(mountpath_c(), card->self)) != ESP_OK)
 	{
 	    ESP_LOGE(TAG, "Error: %d, %s", ret, esp_err_to_name(ret));
