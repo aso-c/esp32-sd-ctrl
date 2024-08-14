@@ -91,16 +91,14 @@ namespace SD //-----------------------------------------------------------------
 	    freq_26M     = SDMMC_FREQ_26M	/*!< MMC 26MHz speed */
 	}; /* SD::Host::Freq */
 
-	/// Default constructor
-	Host(): io(this) {};
 	// "copy" constructor
-//	Host(const sdmmc_host_t& xcfg): cfg(xcfg) {};
-////	    // "move" constructor
-////	    Host(sdmmc_host_t&& tcfg): cfg(tcfg) {};
-//	// copy constructor
-//	Host(const Host& host): Host(host.cfg) {};
-//	    // move constructor
-//	    Host(Host&& host): Host(host.cfg) {};
+	Host(const sdmmc_host_t& xcfg): io(this), cfg(xcfg) {};
+	// "move" constructor
+	Host(sdmmc_host_t&& tcfg): io(this), cfg(tcfg) {};
+	// copy constructor
+	Host(const Host& host): Host(host.cfg) {};
+	// move constructor
+	Host(Host&& host): Host(host.cfg) {};
 
 	virtual ~Host() {};
 
@@ -235,7 +233,7 @@ namespace SD //-----------------------------------------------------------------
 	// Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
 	// Please check its source code and implement error recovery when developing
 	// production applications.
-//	sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
+	sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
 
 	//!
 	// @brief Enable IO interrupts
@@ -481,7 +479,7 @@ namespace SD //-----------------------------------------------------------------
 	    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
 	    // Please check its source code and implement error recovery when developing
 	    // production applications.
-	    sdmmc_host_t cfg = SDMMC_HOST_DEFAULT(); // @suppress("Invalid arguments")
+	    sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
 
 	    Slot _slot;
 
@@ -494,8 +492,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	    // @return returns ESP_OK, other errors possible in the future
 //	    esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
-	    esp_err_t io_int_enable() override { return cfg.io_int_enable(cfg.slot);
-			    /*return sdmmc_host_io_int_enable(cfg.slot);*/ };
+	    esp_err_t io_int_enable() override { return cfg.io_int_enable(cfg.slot);};
 
 	    //!
 	    // @brief Block until an SDIO interrupt is received, or timeout occurs
@@ -507,18 +504,8 @@ namespace SD //-----------------------------------------------------------------
 	    //  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 	    //        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
 //	    esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	    esp_err_t io_int_wait(TickType_t timeout_ticks) { return cfg.io_int_wait(cfg.slot, timeout_ticks);
-						    /*return sdmmc_host_io_int_wait(cfg.slot, timeout_ticks);*/};
+	    esp_err_t io_int_wait(TickType_t timeout_ticks) { return cfg.io_int_wait(cfg.slot, timeout_ticks);};
 	}; /* struct SD::MMC::Host */
-
-//    }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
-//
-//
-//
-//    namespace MMC
-//    {
-
-//	class Card;
 
 
 	// I/O operations for the SD/MMC card
@@ -528,29 +515,6 @@ namespace SD //-----------------------------------------------------------------
 
 	    // Constructor
 	    IO(Card* holder);
-
-#if 0
-    // Enable SDIO interrupt in the SDMMC host
-    // Parameters:
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    // Returns:
-    //	    ESP_OK on success
-    //	    ESP_ERR_NOT_SUPPORTED if the host controller does not support IO interrupts
-    //    esp_err_t sdmmc_io_enable_int(sdmmc_card_t *card)
-    esp_err_t enable_int();
-
-    // Block until an SDIO interrupt is received
-    // Slave uses D1 line to signal interrupt condition to the host. This function can be used to wait for the interrupt.
-    // Parameters
-    //	    card  – pointer to card information structure previously initialized using sdmmc_card_init
-    //	    ticks – time to wait for the interrupt, in RTOS ticks
-    // Returns
-    //	    ESP_OK if the interrupt is received
-    //	    ESP_ERR_NOT_SUPPORTED if the host controller does not support IO interrupts
-    //	    ESP_ERR_TIMEOUT if the interrupt does not happen in timeout_ticks
-    //    esp_err_t sdmmc_io_wait_int(sdmmc_card_t *card, TickType_t timeout_ticks)
-    esp_err_t wait_int(TickType_t ticks);
-#endif
 
 	    class Interrupt
 	    {
@@ -592,46 +556,6 @@ namespace SD //-----------------------------------------------------------------
 
 	    }; /* class SD::MMC::IO::Interrupt */
 
-#if 0
-    // Get the data of CIS region of an SDIO card.
-    // You may provide a buffer not sufficient to store all the CIS data. In this case, this function
-    // stores as much data into your buffer as possible. Also, this function will try to get and return
-    // the size required for you.
-    // Parameters:
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    //	    out_buffer – Output buffer of the CIS data
-    //	    buffer_size – Size of the buffer.
-    //	    inout_cis_size – Mandatory, pointer to a size, input and output.
-    //		input: Limitation of maximum searching range, should be 0 or larger than buffer_size.
-    //			The function searches for CIS_CODE_END until this range. Set to 0 to search infinitely.
-    //		output: The size required to store all the CIS data, if CIS_CODE_END is found.
-    // Returns:
-    //	    ESP_OK: on success
-    //	    ESP_ERR_INVALID_RESPONSE: if the card does not (correctly) support CIS.
-    //	    ESP_ERR_INVALID_SIZE: CIS_CODE_END found, but buffer_size is less than required size,
-    //				which is stored in the inout_cis_size then.
-    //	    ESP_ERR_NOT_FOUND: if the CIS_CODE_END not found. Increase input value of inout_cis_size or set it to 0,
-    //				if you still want to search for the end; output value of inout_cis_size is invalid in this case.
-    //	    and other error code return from sdmmc_io_read_bytes
-    // esp_err_t sdmmc_io_get_cis_data(sdmmc_card_t *card, uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size)
-    esp_err_t get_cis_data(uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size);
-
-    // Parse and print the CIS information of an SDIO card.
-    // Warning!
-    //	    Not all the CIS codes and all kinds of tuples are supported. If you see some unresolved code,
-    //	    you can add the parsing of these code in sdmmc_io.c and contribute to the IDF through the Github repository.
-    //         using sdmmc_card_init
-    // Parameters:
-    //	    buffer – Buffer to parse
-    //	    buffer_size – Size of the buffer.
-    //	    fp – File pointer to print to, set to NULL to print to stdout.
-    // Returns
-    //	    ESP_OK: on success
-    //	    ESP_ERR_NOT_SUPPORTED: if the value from the card is not supported to be parsed.
-    //	    ESP_ERR_INVALID_SIZE: if the CIS size fields are not correct.
-    esp_err_t print_cis_info(uint8_t *buffer, size_t buffer_size, FILE *fp);
-#endif
-
 	    class CIS
 	    {
 	    public:
@@ -664,7 +588,6 @@ namespace SD //-----------------------------------------------------------------
 		//              output value of inout_cis_size is invalid in this case.
 		//      - and other error code return from sdmmc_io_read_bytes
 //		esp_err_t sdmmc_io_get_cis_data(sdmmc_card_t* card, uint8_t* out_buffer, size_t buffer_size, size_t* inout_cis_size);
-//		esp_err_t data(uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size);
 		esp_err_t data(std::vector<uint8_t> &outbuf, size_t &inout_cis_size);
 
 		//!
@@ -684,7 +607,6 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_ERR_NOT_SUPPORTED: if the value from the card is not supported to be parsed.
 		//      - ESP_ERR_INVALID_SIZE: if the CIS size fields are not correct.
 //		esp_err_t sdmmc_io_print_cis_info(uint8_t* buffer, size_t buffer_size, FILE* fp);
-//		esp_err_t info(uint8_t *buffer, size_t buffer_size, FILE *fp);
 		esp_err_t info(std::vector<uint8_t> buff, FILE *fp);
 
 	    private:
@@ -711,8 +633,7 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_OK on success
 		//      - One of the error codes from SDMMC host controller
 		//    esp_err_t sdmmc_io_read_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t *out_byte);
-		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t &out_byte)
-		    /*{ return sdmmc_io_read_byte(card.data, function, reg, out_byte);}*/;
+		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t &out_byte);
 
 		//!
 		// Read multiple bytes from an SDIO card using IO_RW_EXTENDED (CMD53)
@@ -731,8 +652,6 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
 		//      - One of the error codes from SDMMC host controller
 		//    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
-//		esp_err_t bytes(uint32_t function, uint32_t addr, void *dst, size_t size)
-//		    /*{ return sdmmc_io_read_bytes(card.data, function, addr, dst, size);}*/;
 		esp_err_t bytes(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size = 0);
 
 		//!
@@ -753,8 +672,6 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
 		//      - One of the error codes from SDMMC host controller
 		//    esp_err_t sdmmc_io_read_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
-		esp_err_t blocks(uint32_t function, uint32_t addr, void *dst, size_t size)
-		    /*{ return sdmmc_io_read_blocks(card.data, function, addr, dst, size);}*/;
 		esp_err_t blocks(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size = 0);
 	    private:
 		IO& iohandler;
@@ -784,8 +701,6 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_OK on success
 		//      - One of the error codes from SDMMC host controller
 		//    esp_err_t sdmmc_io_write_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte);
-//		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte)
-//		    /*{ return sdmmc_io_write_byte(card.data, function, reg, in_byte, out_byte);}*/;
 		// Simply read the byte
 		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t in_byte);
 		// Read-after-write version of
@@ -808,8 +723,6 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
 		//      - One of the error codes from SDMMC host controller
 		//    esp_err_t sdmmc_io_write_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
-//		esp_err_t bytes(uint32_t function, uint32_t addr, const void *src, size_t size)
-//		    /*{ return sdmmc_io_write_bytes(card.data, function, addr, src, size);}*/;
 		esp_err_t bytes(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size = 0);
 
 		//!
@@ -830,8 +743,6 @@ namespace SD //-----------------------------------------------------------------
 		//      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
 		//      - One of the error codes from SDMMC host controller
 		//    esp_err_t sdmmc_io_write_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
-//		esp_err_t blocks(uint32_t function, uint32_t addr, const void *src, size_t size)
-//		    /*{ return sdmmc_io_write_blocks(card.data, function, addr, src, size);}*/;
 		esp_err_t blocks(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size = 0);
 
 	    private:
@@ -879,194 +790,248 @@ namespace SD //-----------------------------------------------------------------
 	esp_err_t init(const sdmmc_host_t& host) { return sdmmc_card_init(&host, self);};
 	esp_err_t init(const MMC::Host& host) { return sdmmc_card_init(&host.cfg, self);};
 
-    /// foe class Device: request formatting SD-card if mount failed
-    struct format {
-	/// format if mount failed?
-	enum mntfail {
-	    no = 0,	// no format
-	    yes = 1	// format, if card mounting - fail
-	}; /* enum mntfail */
-    }; /* struct format */
+//	/// for a class Device: request formatting SD-card if mount failed
+//	struct format {
+//	    /// format if mount failed?
+//	    enum mntfail {
+//		no = 0,	// no format
+//		yes = 1	// format, if card mounting - fail
+//	    }; /* enum mntfail */
+//	}; /* struct SD::Card::format */
 
-    // Print information about the card to a stream.
-    // Parameters:
-    //	    stream – stream obtained using fopen or fdopen
-    //	    card – card information structure initialized using sdmmc_card_init
-    void print_info(FILE* outfile);		// Print the card info
-    // print the SD-card info to stdout (wrapper for the external caller)
-    esp_err_t info();
-    // Print CIS info to outfile - High level procedure
-    esp_err_t cis_info(FILE* outfile);
+	/// for a class Device: request formatting SD-card if mount failed:
+	enum class format {
+		no = 0,	// no format
+		yes = 1	// format, if card mounting - fail
+	    }; /* struct SD::Card::format */
+
+	//!
+	// Print information about the card to a stream.
+	//
+	// @param  outfile – stream obtained using fopen or fdopen, default - stdopen
+	// @return  ESP_OK
+	esp_err_t  info(FILE* outfile = stdout);
+	//! Print CIS info to outfile - High level procedure
+	// @param  outfile – stream obtained using fopen or fdopen, default - stdopen
+	// @return  ESP_OK
+	esp_err_t print_cis(FILE* outfile = stdout);
 
 
+	//!
+	// Get status of SD/MMC card
+	//
+	// param "card": used inner pointer to card information structure
+	//               that previously initialized using sdmmc_card_init
+	// @return
+	//      - ESP_OK on success
+	//      - One of the error codes from SDMMC host controller
+	esp_err_t status() { return sdmmc_get_status(self); };
 
-    // Get status of SD/MMC card
-    // Parameters:
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-    esp_err_t get_status() { return sdmmc_get_status(self); };
 
-    // Write given number of sectors to SD/MMC card
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    //	    src – pointer to data buffer to read data from; data size must be equal to sector_count * card->csd.sector_size
-    //	    start_sector – sector where to start writing
-    //	    sector_count – number of sectors to write
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-    esp_err_t write_sectors(const void *src, size_t start_sector, size_t sector_count)
-		{ return sdmmc_write_sectors(self, src, start_sector, sector_count); };
+	class Sectors
+	{
+	public:
 
-    // Read given number of sectors from the SD/MMC card
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    //	    dst – pointer to data buffer to write into; buffer size must be at least sector_count * card->csd.sector_size
-    //	    start_sector – sector where to start reading
-    //	    sector_count – number of sectors to read
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-    esp_err_t read_sectors(void *dst, size_t start_sector, size_t sector_count)
-		{ return sdmmc_read_sectors(self, dst, start_sector, sector_count);};
+	    Sectors(Card *media): card(media) {};
 
-    MMC::IO io;
+	    //!
+	    // Write given number of sectors to SD/MMC card
+	    //
+	    // param "card": used inner pointer to card information structure
+	    //               that previously initialized using sdmmc_card_init
+	    // @param src   pointer to data buffer to read data from; data size must be
+	    //              equal to sector_count * card->csd.sector_size
+	    // @param start_sector  sector where to start writing
+	    // @param sector_count  number of sectors to write
+	    // @return
+	    //      - ESP_OK on success
+	    //      - One of the error codes from SDMMC host controller
+//	    esp_err_t write(const void *src, size_t start_sector, size_t sector_count)
+	    esp_err_t write(const std::vector<uint8_t> &src, size_t start_sector, size_t sector_count = 0)
+			{ return (sector_count > src.size())? ESP_ERR_INVALID_SIZE:
+				sdmmc_write_sectors(card->self, src.data(), start_sector, (!sector_count)? src.size(): sector_count); };
+
+	    //!*
+	    // Read given number of sectors from the SD/MMC card
+	    //
+	    // param "card": used inner pointer to card information structure
+	    //               that previously initialized using sdmmc_card_init
+	    // @param dst   pointer to data buffer to write into; buffer size must be
+	    //              at least sector_count * card->csd.sector_size
+	    // @param start_sector  sector where to start reading
+	    // @param sector_count  number of sectors to read
+	    // @return
+	    //      - ESP_OK on success
+	    //      - One of the error codes from SDMMC host controller
+//	    esp_err_t read(void *dst, size_t start_sector, size_t sector_count)
+	    esp_err_t read(std::vector<uint8_t> &dst, size_t start_sector, size_t sector_count = 0)
+			{ return (sector_count > dst.size())? ESP_ERR_INVALID_SIZE:
+				sdmmc_read_sectors(card->self, dst.data(), start_sector, (!sector_count)? dst.size(): sector_count);};
 
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5,0,0)
 
-    // Erase given number of sectors from the SD/MMC card
-    // Warning! When sdmmc_erase_sectors used with cards in SDSPI mode,
-    //		it was observed that card requires re-init after erase operation.
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    //	    start_sector – sector where to start erase
-    //	    sector_count – number of sectors to erase
-    //	    arg – erase command (CMD38) argument
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-    esp_err_t erase_sectors(size_t start_sector, size_t sector_count, sdmmc_erase_arg_t arg)
-		{ return sdmmc_erase_sectors(self, start_sector, sector_count, arg);};
-
-    // Check if SD/MMC card supports discard
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    // Returns
-    //	    ESP_OK if supported by the card/device
-    //	    ESP_FAIL if not supported by the card/device
-    esp_err_t can_discard() { return sdmmc_can_discard(self);};
-
-    // Check if SD/MMC card supports trim
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    // Returns
-    //	    ESP_OK if supported by the card/device
-    //	    ESP_FAIL if not supported by the card/device
-    esp_err_t can_trim() { return sdmmc_can_trim(self);};
-
-    // Check if SD/MMC card supports sanitize
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    // Returns:
-    //	    ESP_OK if supported by the card/device
-    //	    ESP_FAIL if not supported by the card/device
-    esp_err_t mmc_can_sanitize() {return sdmmc_mmc_can_sanitize(self);};
-
-    //Sanitize the data that was unmapped by a Discard command
-    // Warning! Discard command has to precede sanitize operation.
-    //		To discard, use MMC_DICARD_ARG with sdmmc_erase_sectors argument
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    //	    timeout_ms – timeout value in milliseconds required to sanitize the selected range of sectors.
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-    esp_err_t mmc_sanitize(uint32_t timeout_ms) { return sdmmc_mmc_sanitize(self, timeout_ms); };
-
-    // Erase complete SD/MMC card
-    // Parameters
-    //	    card – pointer to card information structure previously initialized using sdmmc_card_init
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-    esp_err_t full_erase() { return sdmmc_full_erase(self);};
+	    //!
+	    // Erase given number of sectors from the SD/MMC card
+	    //
+	    // @note When sdmmc_erase_sectors used with cards in SDSPI mode, it was
+	    // observed that card requires re-init after erase operation.
+	    //
+	    // param "card": used inner pointer to card information structure
+	    //               that previously initialized using sdmmc_card_init
+	    // @param start_sector  sector where to start erase
+	    // @param sector_count  number of sectors to erase
+	    // @param arg  erase command (CMD38) argument
+	    // @return
+	    //      - ESP_OK on success
+	    //      - One of the error codes from SDMMC host controller
+	    esp_err_t erase(size_t start_sector, size_t sector_count, sdmmc_erase_arg_t arg)
+			{ return sdmmc_erase_sectors(card->self, start_sector, sector_count, arg);};
 #endif	// ESP_IDF_VERSION_VAL(x,y,p)
 
-private:
-    esp_err_t ret;
-
-public:
-    static const char* TAG;
-    sdmmc_card_t* self;
-
-}; /* class Card */
+	private:
+	    Card *card;
+	}; /* SD::Card::Sectors */
 
 
 
-namespace MMC
-{
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5,0,0)
+
+	//!
+	// Check if SD/MMC card supports discard
+	//
+	// param "card": is used inner pointer to card information structure
+	//               that previously initialized using sdmmc_card_init
+	// @return
+	//      - ESP_OK if supported by the card/device
+	//      - ESP_FAIL if not supported by the card/device
+	esp_err_t discardable() { return sdmmc_can_discard(self);};
+
+	//!
+	// Check if SD/MMC card supports trim
+	//
+	// param "card": used inner pointer to card information structure
+	//               that previously initialized using sdmmc_card_init
+	// @return
+	//      - ESP_OK if supported by the card/device
+	//      - ESP_FAIL if not supported by the card/device
+	esp_err_t trimmable() { return sdmmc_can_trim(self);};
+
+	//!
+	// Check if SD/MMC card supports sanitize
+	//
+	// param "card": used inner pointer to card information structure
+	//               that previously initialized using sdmmc_card_init
+	// @return
+	//      - ESP_OK if supported by the card/device
+	//      - ESP_FAIL if not supported by the card/device
+	esp_err_t sanitizable() {return sdmmc_mmc_can_sanitize(self);};
+
+	//!
+	// Sanitize the data that was unmapped by a Discard command
+	//
+	// @note  Discard command has to precede sanitize operation. To discard, use
+	//        MMC_DICARD_ARG with sdmmc_erase_sectors argument
+	//
+	// param "card": used inner pointer to card information structure
+	//               that previously initialized using sdmmc_card_init
+	// @param timeout_ms timeout value in milliseconds required to sanitize the
+	//                   selected range of sectors.
+	// @return
+	//      - ESP_OK on success
+	//      - One of the error codes from SDMMC host controller
+	esp_err_t sanitize(uint32_t timeout_ms) { return sdmmc_mmc_sanitize(self, timeout_ms); };
+
+	//!
+	// Erase complete SD/MMC card
+	//
+	// param "card": used inner pointer to card information structure
+	//               that previously initialized using sdmmc_card_init
+	// @return
+	//      - ESP_OK on success
+	//      - One of the error codes from SDMMC host controller
+	esp_err_t full_erase() { return sdmmc_full_erase(self);};
+#endif	// ESP_IDF_VERSION_VAL(x,y,p)
+
+	Sectors sectors;
+	MMC::IO io;
+
+    private:
+	esp_err_t ret;
+
+    public:
+	static const char* TAG;
+	sdmmc_card_t* self;
+
+    }; /* class Card */
 
 
-// Implementation of the mounting actions:
-// - Options for mounting the filesystem.
-//     (If format_if_mount_failed is set
-//	to true, SD card will be partitioned
-//	and formatted in case when mounting
-//	fails.)
-// - Implementation the mount & unmount methods.
-struct Device
-{
+    namespace MMC
+    {
+	// Implementation of the mounting actions:
+	// - Options for mounting the filesystem.
+	//     (If format_if_mount_failed is set
+	//	to true, SD card will be partitioned
+	//	and formatted in case when mounting
+	//	fails.)
+	// - Implementation the mount & unmount methods.
+	struct Device
+	{
 
-    Device(bus::width = bus::width_def, Host::Pullup = Host::nopullup,
-	    esp_vfs_fat_sdmmc_mount_config_t&& mnt_cfg = {
+	    Device(bus::width = bus::width_def, Host::Pullup = Host::nopullup,
+		    esp_vfs_fat_sdmmc_mount_config_t&& mnt_cfg = {
 						.format_if_mount_failed = false,
 						.max_files = 5,
 						.allocation_unit_size = 16*1024,
 						.disk_status_check_enable = false});
-    Device(SD::Card::format::mntfail autofmt,
-	    int max_files = 5, size_t unit_size = 16 * 1024, bool disk_st_chk = false,
-	    bus::width = bus::width_def, Host::Pullup = Host::nopullup);
+	    Device(SD::Card::format/*::mntfail*/ autofmt,
+		    int max_files = 5, size_t unit_size = 16 * 1024, bool disk_st_chk = false,
+		    bus::width = bus::width_def, Host::Pullup = Host::nopullup);
 
-    Host& host() {return _host;};
+	    Host& host() {return _host;};
 
-    esp_err_t mount(Card&, std::string mountpoint);	// Mount default SD-card slot onto path "mountpoint"
-//    esp_err_t mount(Card&, int slot_no);		// Mount SD-card slot "slot_no" onto default mount path
-//    esp_err_t mount(Card&, int slot_no, const std::string&);  // Mount SD-card slot "slot_no" onto default mount path
+	    esp_err_t mount(Card&, std::string mountpoint);	// Mount default SD-card slot onto path "mountpoint"
+//	    esp_err_t mount(Card&, int slot_no);		// Mount SD-card slot "slot_no" onto default mount path
+//	    esp_err_t mount(Card&, int slot_no, const std::string&);  // Mount SD-card slot "slot_no" onto default mount path
 
-    esp_err_t unmount();	// Unmount SD-card, that mounted onto own mountpath
-    //esp_err_t unmount(const std::string& = "");	// Unmount SD-card, that mounted onto "mountpath", default - call w/o mountpath
-    //esp_err_t unmount(sdmmc_card_t *card);	// Unmount SD-card "card", mounted onto default mountpath
-    //esp_err_t unmount(const std::string& base_path, sdmmc_card_t *card);	// Unmount mounted SD-card "card", mounted onto mountpath
-    bool mounted() {return card != nullptr;};	// is devise mounted?
+	    esp_err_t unmount();	// Unmount SD-card, that mounted onto own mountpath
+	    //esp_err_t unmount(const std::string& = "");	// Unmount SD-card, that mounted onto "mountpath", default - call w/o mountpath
+	    //esp_err_t unmount(sdmmc_card_t *card);	// Unmount SD-card "card", mounted onto default mountpath
+	    //esp_err_t unmount(const std::string& base_path, sdmmc_card_t *card);	// Unmount mounted SD-card "card", mounted onto mountpath
+	    bool mounted() {return card != nullptr;};	// is devise mounted?
 
 
-    /// get mountpath
-    const std::string& mountpath() const {return target;};
-    /// get mountpath, C string version
-    const char *mountpath_c() const {return target.c_str();};
-    // set mountpath, return old mountpath
-    std::string mountpath(std::string newpath) { if (!mounted()) std::swap(newpath, target); return newpath; };
-    std::string clean_mountpath() {return mountpath("");};
+	    /// get mountpath
+	    const std::string& mountpath() const {return target;};
+	    /// get mountpath, C string version
+	    const char *mountpath_c() const {return target.c_str();};
+	    // set mountpath, return old mountpath
+	    std::string mountpath(std::string newpath) { if (!mounted()) std::swap(newpath, target); return newpath; };
+	    std::string clean_mountpath() {return mountpath("");};
 
-    // use сarefully! may be incorrect behavior!
-    int slot_no() {return _host.slot_no();}
-    int slot_no(int num) {return _host.slot_no((num == 0)? Slot::_0: ((num == 1)? Slot::_1: Slot::out_of_range));}
+	    //! get current slot number
+	    // @return   current slot number
+	    int slot_no() {return _host.slot_no();}
 
-    Card* card = nullptr;
+	    //! set slot number of the host
+	    //
+	    // @note  use сarefully! may be incorrect behavior!
+	    // @param num  new slot number
+	    // @return    prev slot number
+	    int slot_no(int num) {return _host.slot_no((num == 0)? Slot::_0: ((num == 1)? Slot::_1: Slot::out_of_range));}
 
-private:
+	    Card* card = nullptr;
 
-    Host _host;
-    std::string target = "";
-    esp_vfs_fat_sdmmc_mount_config_t mnt;
-    esp_err_t ret = ESP_OK;	// Error status
+	private:
 
-    void selective_log_level_set(const char tag[], esp_log_level_t level) {esp_log_level_set(tag, level);/* for debug purposes */};
+	    Host _host;
+	    std::string target = "";
+	    esp_vfs_fat_sdmmc_mount_config_t mnt;
+	    esp_err_t ret = ESP_OK;	// Error status
 
-}; /* struct Device */
+	    void selective_log_level_set(const char tag[], esp_log_level_t level) {esp_log_level_set(tag, level);/* for debug purposes */};
+
+	}; /* struct Device */
 
     }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
 
@@ -1074,6 +1039,7 @@ private:
     //--[ class SD::Card ]---------------------------------------------------------------------------------------------
 
     inline Card::Card():
+	sectors(this),
 	io(this),
 	ret(ESP_OK),
 	self(nullptr)
@@ -1150,7 +1116,6 @@ private:
     //              output value of inout_cis_size is invalid in this case.
     //      - and other error code return from sdmmc_io_read_bytes
     esp_err_t inline
-//    MMC::IO::CIS::data(uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size) {
     MMC::IO::CIS::data(std::vector<uint8_t> &outbuf, size_t &inout_cis_size) {
 	return sdmmc_io_get_cis_data(iohandler.card.self, outbuf.data(), outbuf.size(), &inout_cis_size);};
 
@@ -1171,7 +1136,6 @@ private:
     //      - ESP_ERR_NOT_SUPPORTED: if the value from the card is not supported to be parsed.
     //      - ESP_ERR_INVALID_SIZE: if the CIS size fields are not correct.
     esp_err_t inline
-//    MMC::IO::CIS::info(uint8_t *buffer, size_t buffer_size, FILE *fp) {
     MMC::IO::CIS::info(std::vector<uint8_t> buff, FILE *fp) {
 	return sdmmc_io_print_cis_info(buff.data(), buff.size(), fp);};
 
@@ -1219,9 +1183,6 @@ private:
     //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
     //    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
-//    esp_err_t inline
-//    MMC::IO::Read::bytes(uint32_t function, uint32_t addr, void *dst, size_t size) {
-//	return sdmmc_io_read_bytes(iohandler.card.self, function, addr, dst, size);};
     esp_err_t inline
     MMC::IO::Read::bytes(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size) {
 	return (size > dst.size()) ? ESP_ERR_INVALID_SIZE:
@@ -1246,9 +1207,6 @@ private:
     //      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
     //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_read_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
-    esp_err_t inline
-    MMC::IO::Read::blocks(uint32_t function, uint32_t addr, void *dst, size_t size) {
-	return sdmmc_io_read_blocks(iohandler.card.self, function, addr, dst, size);};
     esp_err_t inline
     MMC::IO::Read::blocks(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size) {
 	return (size > dst.size())? ESP_ERR_INVALID_SIZE:
@@ -1277,9 +1235,6 @@ private:
     //      - ESP_OK on success
     //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_write_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte);
-//    esp_err_t inline
-//    MMC::IO::Write::byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte) {
-//	return sdmmc_io_write_byte(iohandler.card.self, function, reg, in_byte, out_byte);};
     esp_err_t inline
     MMC::IO::Write::byte(uint32_t function, uint32_t reg, uint8_t in_byte) {
 	return sdmmc_io_write_byte(iohandler.card.self, function, reg, in_byte, nullptr);};
@@ -1305,9 +1260,6 @@ private:
     //      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
     //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_write_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
-//    esp_err_t inline
-//    MMC::IO::Write::bytes(uint32_t function, uint32_t addr, const void *src, size_t size)	{
-//	return sdmmc_io_write_bytes(iohandler.card.self, function, addr, src, size);};
     esp_err_t inline
     MMC::IO::Write::bytes(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size)	{
 	return (size > src.size())? ESP_ERR_INVALID_SIZE:
@@ -1331,14 +1283,10 @@ private:
     //      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
     //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_write_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
-//    esp_err_t inline
-//    MMC::IO::Write::blocks(uint32_t function, uint32_t addr, const void *src, size_t size) {
-//	return sdmmc_io_write_blocks(iohandler.card.self, function, addr, src, size);};
     esp_err_t inline
     MMC::IO::Write::blocks(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size) {
 	return (size > src.size())? ESP_ERR_INVALID_SIZE:
 		sdmmc_io_write_blocks(iohandler.card.self, function, addr, src.data(), (size == 0)? src.size(): size);};
-
 
 }; //--[ namespace SD ]------------------------------------------------------------------------------------------------
 

@@ -78,7 +78,8 @@ namespace SD //-----------------------------------------------------------------
 
 
     /// Default constructor
-    MMC::Host::Host(bus::width width, Pullup pullupst) // @suppress("Member declaration not found") // @suppress("Type cannot be resolved")
+    MMC::Host::Host(bus::width width, Pullup pullupst):
+	SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT()))
     {
 	//slot.default_num(cfg.slot);
 	ESP_LOGI(TAG, "Using SDMMC peripheral - default constructor");
@@ -89,7 +90,8 @@ namespace SD //-----------------------------------------------------------------
     }; /* SD::MMC::Host::Host */
 
     /// Constructor with default slot configuration by number of the slot
-    MMC::Host::Host(Slot::number number, bus::width width, Host::Pullup pullupst): // @suppress("Member declaration not found") // @suppress("Type cannot be resolved")
+    MMC::Host::Host(Slot::number number, bus::width width, Host::Pullup pullupst):
+		SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT())),
 		_slot(number) // @suppress("Symbol is not resolved")
     {
 	cfg.slot = number; // @suppress("Field cannot be resolved")
@@ -103,6 +105,7 @@ namespace SD //-----------------------------------------------------------------
     /// for desired slot number
     /// in lvalue object
     MMC::Host::Host(Slot::number num, const Slot& slot, bus::width width, Pullup pullupst):
+		SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT())),
 		_slot(slot)
     {
 	cfg.slot = num;
@@ -126,7 +129,8 @@ namespace SD //-----------------------------------------------------------------
 
     /// for lvalue object (defined variable)
     ///Host(const sdmmc_host_t&, bus::width = bus::width_def, Pullup = nopullup);
-    MMC::Host::Host(const sdmmc_host_t& host, bus::width width, Pullup pullupst)
+    MMC::Host::Host(const sdmmc_host_t& host, bus::width width, Pullup pullupst):
+	SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT()))
     {
 	cfg = host;
 	if (host.slot == 0)
@@ -443,7 +447,7 @@ namespace SD //-----------------------------------------------------------------
 	//ESP_LOGI(TAG, "Initializing SD card");
     }; /* SD::MMC::Device::Device(bus::width, Host::Pullup, esp_vfs_fat_sdmmc_mount_config_t&) */
 
-    MMC::Device::Device(Card::format::mntfail autofmt, int max_files, size_t size, bool disk_st_chk,
+    MMC::Device::Device(Card::format/*::mntfail*/ autofmt, int max_files, size_t size, bool disk_st_chk,
 		    bus::width width, Host::Pullup pull):
 		_host(width, pull)
     {
@@ -538,40 +542,31 @@ namespace SD //-----------------------------------------------------------------
 #define CMD_TAG_PRFX "SD/MMC Card::"
 
 
-    /// Print the card info
-    void Card::print_info(FILE* outfile)
+    /// Print the card info to outfile
+    /// print the SD-card info to a file (default - to stdout)
+    esp_err_t  Card::info(FILE* outfile)
     {
 	sdmmc_card_print_info(outfile, self);
 	fprintf(outfile, "Sector: %d Bytes\n\n", self->csd.sector_size);
+	return ESP_OK;
     }; /* SD::MMC::Card::print_info */
 
-
-    /// print the SD-card info (wrapper for the external caller)
-    esp_err_t Card::info()
-    {
-	print_info(stdout);
-	return ESP_OK;
-    }; /* SD::MMC::Card::info */
 
     const char* Card::TAG = "SD/MMC Card";
 
     /// Print CIS info to outfile -
     /// High level procedure
-    esp_err_t Card::cis_info(FILE* outfile)
+    esp_err_t Card::print_cis(FILE* outfile)
     {
 	    size_t cisize = 0;
-//	    size_t bsize = 16;
 	    size_t bsize = 16;
-//	    uint8_t* outbuf = (uint8_t*)malloc(bsize);
 	    std::vector<uint8_t> outbuf(bsize);
 	    esp_err_t err;
 
-//	err = io.cis.data(outbuf, bsize, &cisize); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
 	err = io.cis.data(outbuf, cisize);
 	if (err != ESP_OK)
 	{
 	    ESP_LOGE("sdcard info command", "Error %i in get get CIS data first time: %s", err, esp_err_to_name(err));
-//	    free(outbuf);
 	    switch (err)
 	    {
 	    case ESP_ERR_INVALID_RESPONSE:
@@ -584,7 +579,6 @@ namespace SD //-----------------------------------------------------------------
 		ESP_LOGD("sdcard cis info command", "The new size of the CIS data buffer is: %i", bsize);
 		cisize = 0;
 		outbuf.resize(bsize);
-//		err = io.cis.data(outbuf, bsize, &cisize); // @suppress("Field cannot be resolved") // @suppress("Method cannot be resolved")
 		err = io.cis.data(outbuf, cisize);
 	    }; /* switch err */
 	}; /* if err != ESP_ERR_INVALID_SIZE */
@@ -597,7 +591,6 @@ namespace SD //-----------------------------------------------------------------
 	}; /* if err != ESP_OK */
 
 	err = io.cis.info(outbuf, stdout); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
-//	free(outbuf);
 	if (err != ESP_OK)
 	    ESP_LOGD("sdcard info command", "Error %i in the print of the CIS info: %s", err, esp_err_to_name(err));
 
