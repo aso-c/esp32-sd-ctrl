@@ -30,7 +30,6 @@ namespace SD //-----------------------------------------------------------------
 	    Slot(const Slot&);		// really copy constructor
 	    Slot(const sdspi_device_config_t&);	// copy constructor
 	    Slot(sdspi_device_config_t&&);	// move constructor
-//	    enum number {_0 = SDMMC_HOST_SLOT_0, null=_0, _1 = SDMMC_HOST_SLOT_1, one=_1, out_of_range = -1};
 
 	    enum number {
 	    //SPI1 can be used as GPSPI only on ESP32
@@ -60,7 +59,261 @@ namespace SD //-----------------------------------------------------------------
 
 	    friend class Host;
 
-	}; /* struct Slot */
+	}; /* struct SD::SPI::Slot */
+
+#if 0
+	    struct Host
+	    {
+
+	//	    // Default constructor
+	//	    Host(bus::width = bus::width_def, Pullup = nopullup);
+	//	    // Constructor with default slot configuration by number of the slot
+	//	    Host(Slot::number, bus::width = bus::width_def, Pullup = nopullup);
+	//	    // Custom slot configuration in temporary obj for desired slot number
+	//	    Host(Slot::number, sdmmc_slot_config_t&& slot_config);	// in temporary object
+	//	    Host(Slot::number, Slot&&, bus::width = bus::width_def, Pullup = nopullup);	// in temporary object
+	//	    Host(Slot::number, const sdmmc_slot_config_t& slot_config);	// in lvalue object
+	//	    Host(Slot::number, const Slot&, bus::width = bus::width_def, Pullup = nopullup);	// in lvalue object
+	//	    // Copy constructors
+	//	    Host(const Host&, bus::width = bus::width_def, Pullup = nopullup);		// for lvalue object (defined variable)
+	//	    // for lvalue object (defined variable)
+	//	    Host(const sdmmc_host_t&, bus::width = bus::width_def, Pullup = nopullup);
+	//	    // for rvalue oblect (e.g. temporary object)
+	//	    Host(sdmmc_host_t&&, bus::width = bus::width_def, Pullup = nopullup) noexcept;
+	//
+	//	    // for lvalue object (defined variable)
+	//	    Host(const sdmmc_host_t& ehost, const sdmmc_slot_config_t& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup):
+	//		Host(ehost, busw, pullst)/*, slot(eslot)*/{_slot = eslot;};
+	//	    // for rvalue oblect (e.g. temporary object)
+	//	    Host(sdmmc_host_t&& ehost, sdmmc_slot_config_t&& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup) noexcept:
+	//		    Host(ehost, busw, pullst)/*, slot(eslot)*/ {_slot = eslot;};
+
+		/// Default constructor
+		Host(): io(this) {};
+		// "copy" constructor
+	//	Host(const sdmmc_host_t& xcfg): cfg(xcfg) {};
+	////	    // "move" constructor
+	////	    Host(sdmmc_host_t&& tcfg): cfg(tcfg) {};
+	//	// copy constructor
+	//	Host(const Host& host): Host(host.cfg) {};
+	//	    // move constructor
+	//	    Host(Host&& host): Host(host.cfg) {};
+		virtual ~Host() {};
+
+	//	    Slot& slot() { return _slot;};
+
+	//	operator sdmmc_host_t&() {return cfg;};
+	//	operator sdmmc_host_t*() {return &cfg;};
+
+	//	Host& operator =(const Host&);
+	//	Host& operator =(const sdmmc_host_t&);
+	//	Host& operator =(sdmmc_host_t&& host) noexcept { return operator =(host); };
+
+	//	    void set_pullup(Pullup pullup_st) { _slot.internal_pullup((pullup_st == pullup)? true: false);}
+	//	    bool pullup_state() {return _slot.pullup_state();};
+
+	//	    // use сarefully! may be incorrect behavior!
+	//	    int slot_no() {return cfg.slot;}
+	//	    int slot_no(Slot::number num) {int old = cfg.slot; cfg.slot = num; return old;}
+
+		// Initialize SDMMC host peripheral.
+		//
+		// Warning! This function is deprecate!
+		// Warning! This function is not thread safe!
+		//
+		// Return:
+		//	    ESP_OK on success
+		//	    ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
+		//	    ESP_ERR_NO_MEM if memory can not be allocated
+		esp_err_t virtual pure_init(void) = 0 /*{ return sdmmc_host_init(); }*/;
+
+		// Initialize given slot of SDMMC peripheral.
+		// On the ESP32, SDMMC peripheral has two slots:
+		//	    Slot 0: 8-bit wide, maps to HS1_* signals in PIN MUX
+		//	    Slot 1: 4-bit wide, maps to HS2_* signals in PIN MUX
+		// Card detect and write protect signals can be routed to arbitrary GPIOs using GPIO matrix.
+		// Warning! This function is not thread safe
+		// Parameters
+		//      slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		//      slot_config – additional configuration for the slot
+		// Returns
+		//      ESP_OK on success
+		//      ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
+		esp_err_t virtual init() = 0 /*{return sdmmc_host_init_slot(cfg.slot, &_slot.cfg); }*/;
+	//	    esp_err_t init(int slot, const sdmmc_slot_config_t *slot_config);
+	//	    esp_err_t virtual init(Slot::number, const Slot& extern_slot) = 0;
+	////	    esp_err_t init(int slot, const sdmmc_slot_config_t& slot_config);
+	//	    esp_err_t virtual init(Slot::number, Slot&& extern_slot) = 0;
+
+	//	    // Select bus width to be used for data transfer.
+	//	    // SD/MMC card must be initialized prior to this command, and a command to set bus width has to be sent to the card (e.g. SD_APP_SET_BUS_WIDTH)
+	//	    // Note
+	//	    // This function is not thread safe
+	//	    // Parameters
+	//	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	//	    //	    width – bus width (1, 4, or 8 for slot 0; 1 or 4 for slot 1)
+	//	    // Returns
+	//	    //	    ESP_OK on success
+	//	    //	    ESP_ERR_INVALID_ARG if slot number or width is not valid
+	////	    esp_err_t (*set_bus_width)(int slot, size_t width);    /*!< host function to set bus width */
+	//	    esp_err_t bus_width(bus::width width) { return cfg.set_bus_width(cfg.slot, width); };
+	//					    // return sdmmc_host_set_bus_width(cfg.slot, width); };
+
+	//	    // Get bus width configured in sdmmc_host_init_slot to be used for data transfer.
+	//	    // Parameters
+	//	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	//	    // Returns
+	//	    //	    configured bus width of the specified slot.
+	////	    size_t (*get_bus_width)(int slot); /*!< host function to get bus width */
+	//	    size_t bus_width() { return cfg.get_bus_width(cfg.slot); };
+	//			//return sdmmc_host_get_slot_width(cfg.slot);};
+
+		// Set card clock frequency.
+		// Currently only integer fractions of 40MHz clock can be used. For High Speed cards, 40MHz can be used. For Default Speed cards, 20MHz can be used.
+		// Note
+		// This function is not thread safe
+		// Parameters
+		//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		//	    freq_khz – card clock frequency, in kHz
+		// Returns
+		//	    ESP_OK on success
+		//	    other error codes may be returned in the future
+		//        esp_err_t (*set_card_clk)(int slot, uint32_t freq_khz); /*!< host function to set card clock frequency */
+		esp_err_t virtual set_card_clk(uint32_t freq_khz) = 0 /*{return cfg.set_card_clk(cfg.slot, freq_khz); }*/;
+						// return sdmmc_host_set_card_clk(cfg.slot, freq_khz);};
+
+	// -- Only for SD::MMC interface
+	//    // Enable or disable DDR mode of SD interface.
+	//    // Parameters
+	//    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	//    //	    ddr_enabled – enable or disable DDR mode
+	//    // Returns
+	//    //	    ESP_OK on success
+	//    //	    ESP_ERR_NOT_SUPPORTED if DDR mode is not supported on this slot
+	////        esp_err_t (*set_bus_ddr_mode)(int slot, bool ddr_enable); /*!< host function to set DDR mode */
+	//    esp_err_t set_ddr_mode(bool ddr_enabled) { return cfg.set_bus_ddr_mode(cfg.slot, ddr_enabled);
+	//					/*return sdmmc_host_set_bus_ddr_mode(cfg.slot, ddr_enabled);*/ };
+
+		// Send command to the card and get response.
+		// This function returns when command is sent and response is received, or data is transferred, or timeout occurs.
+		// Attention
+		//	    Data buffer passed in cmdinfo->data must be in DMA capable memory
+		// Warning! This function is not thread safe w.r.t. init/deinit functions, and bus width/clock speed configuration
+		//		functions. Multiple tasks can call sdmmc_host_do_transaction as long as other sdmmc_host_* functions
+		//		are not called.
+		// Parameters
+		//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		//	    cmdinfo – pointer to structure describing command and data to transfer
+		// Returns
+		//	    ESP_OK on success
+		//	    ESP_ERR_TIMEOUT if response or data transfer has timed out
+		//	    ESP_ERR_INVALID_CRC if response or data transfer CRC check has failed
+		//	    ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
+		//	    ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
+		//	    ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
+	//        esp_err_t (*do_transaction)(int slot, sdmmc_command_t* cmdinfo);    /*!< host function to do a transaction */
+		esp_err_t virtual do_transaction(sdmmc_command_t *cmdinfo) = 0 /*{ return cfg.do_transaction(cfg.slot, cmdinfo)*/;
+	//							/*return sdmmc_host_do_transaction(cfg.slot, cmdinfo);*/ };
+		esp_err_t virtual do_transaction(sdmmc_command_t& cmdinfo) = 0 /*{ return cfg.do_transaction(cfg.slot, &cmdinfo)*/;
+	//							/*return sdmmc_host_do_transaction(cfg.slot, &cmdinfo);*/ };
+
+		/**
+		 * @brief Remove an SD SPI device
+		 *
+		 * @param handle Handle of the SD SPI device
+		 * @return Always ESP_OK
+		 */
+	//	//esp_err_t sdspi_host_remove_device(sdspi_dev_handle_t handle);
+	//	esp_err_t virtual remove() = 0;
+
+
+		// Disable SDMMC host and release allocated resources.
+		// Warning! This function is not thread safe
+		// Returns
+		//	    ESP_OK on success
+		//	    ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
+		//	    esp_err_t sdmmc_host_deinit(void)
+	//        union {
+	//            esp_err_t (*deinit)(void);  /*!< host function to deinitialize the driver */
+	//            esp_err_t (*deinit_p)(int slot);  /*!< host function to deinitialize the driver, called with the `slot` */
+	//        };
+	//    esp_err_t deinit(void) { return sdmmc_host_deinit();};
+		esp_err_t virtual deinit() = 0;
+
+		struct IO
+		{
+		    IO(Host* parent): interrupt(this), host(*parent) {};
+
+		    struct INT
+		    {
+			INT(IO* parent): io(*parent) {};
+			// Enable IO interrupts.
+			// This function configures the host to accept SDIO interrupts.
+			// Parameters
+			//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+			// Returns
+			//	    ESP_OK, other errors possible in the future
+			esp_err_t enable() { return io.host.io_int_enable(); };
+
+			// Block until an SDIO interrupt is received, or timeout occurs.
+			// Parameters
+			//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+			//	    timeout_ticks – number of RTOS ticks to wait for the interrupt
+			// Returns
+			//	    ESP_OK on success (interrupt received)
+			//	    ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
+		//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
+			esp_err_t wait(TickType_t timeout_ticks) { return io.host.io_int_wait(timeout_ticks);};
+		    private:
+			IO& io;
+		    }; /* SD::Host::IO::INT */
+
+		    INT interrupt;
+
+		private:
+		    Host& host;
+
+
+		}; /* struct SD::Host::IO */
+
+		IO io = this;
+
+	    private:
+
+		// Use settings defined above to initialize SD card and mount FAT filesystem.
+		// Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
+		// Please check its source code and implement error recovery when developing
+		// production applications.
+	//	sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
+
+		friend class Card;
+
+	//    Slot _slot;
+
+		//!
+		// @brief Enable IO interrupts
+		//
+		// This function configures the host to accept SDIO interrupts.
+		//
+		// @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		// @return returns ESP_OK, other errors possible in the future
+
+		//        esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
+		esp_err_t virtual io_int_enable() = 0 /*{ return cfg.io_int_enable(cfg.slot)*/;
+		//    /*return sdmmc_host_io_int_enable(cfg.slot);*/ };
+
+		//!
+		// @brief Block until an SDIO interrupt is received, or timeout occurs
+		// @param slot    -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		// @param timeout_ticks  number of RTOS ticks to wait for the interrupt
+		// @return
+		//  - ESP_OK on success (interrupt received)
+		//  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
+		//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
+		esp_err_t virtual io_int_wait(TickType_t timeout_ticks) = 0 /*{ return cfg.io_int_wait(cfg.slot, timeout_ticks)*/;
+								//    /*return sdmmc_host_io_int_wait(cfg.slot, timeout_ticks);*/};
+	    }; /* struct SD::SPI::Host */
+#endif // if 0
 
 
 

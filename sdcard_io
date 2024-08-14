@@ -3,8 +3,8 @@
  * Include file
  * 	File: sdcard_io
  *	Author:  aso (Solomatov A.A.)
- *	Created: 20.09.2022
- *	Version: 0.7
+ *	Created: 20.09.2022 - 12.08.2024
+ *	Version: 0.8
  */
 
 
@@ -12,22 +12,6 @@
 
 
 #pragma once
-
-/*
- * Предлагаемые команды:
- *    -	sd - main command for manipulation with SD-caed
- *	+ m, mount	- mount sdcard, options: [<card>] [<mountpoint>];
- *	+ u, umount	- unmount sdcard, options: [<card>|<mountpiont>];
- *	+ pwd		- get current directory name, w/o options;
- *	+ cd		- change a current directory
- *	+ ls, dir	- list of files in sdcard, options: [<file pattern>];
- *	+ cd <dir>	- change dir;
- *	+ cat <file>	- print file to console
- *	+ type [<file>]	- type text to cinsile and store it in the file optionally
- *	+ cp, copy	- copy file, options: [<src file>|<dest file>];
- *	+ mv, move	- move or rename file, options: [<src file>|<dest file>];
- */
-
 
 #ifndef __cplusplus
 #error "The sdcard_ctrl file usable in C++ projects only."
@@ -86,12 +70,10 @@ namespace SD //-----------------------------------------------------------------
     }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
 
 
-//    namespace MMC
-//    {
-    //
-    // SD::Host
     struct Host
     {
+	friend class Card;
+
 	enum Flags {
 	    support_1bit = SDMMC_HOST_FLAG_1BIT,	/*!< host supports 1-line SD and MMC protocol */
 	    support_4bit = SDMMC_HOST_FLAG_4BIT,	/*!< host supports 4-line SD and MMC protocol */
@@ -109,60 +91,6 @@ namespace SD //-----------------------------------------------------------------
 	    freq_26M     = SDMMC_FREQ_26M	/*!< MMC 26MHz speed */
 	}; /* SD::Host::Freq */
 
-//	enum Pullup {
-//	    nopullup,
-//	    pullup
-//	}; /* SD::Host::Pullup */
-
-
-//	    typedef struct {
-//	        uint32_t flags;             /*!< flags defining host properties */
-#if 0
-//    #define SDMMC_HOST_FLAG_1BIT    BIT(0)      /*!< host supports 1-line SD and MMC protocol */
-//    #define SDMMC_HOST_FLAG_4BIT    BIT(1)      /*!< host supports 4-line SD and MMC protocol */
-//    #define SDMMC_HOST_FLAG_8BIT    BIT(2)      /*!< host supports 8-line MMC protocol */
-//    #define SDMMC_HOST_FLAG_SPI     BIT(3)      /*!< host supports SPI protocol */
-//    #define SDMMC_HOST_FLAG_DDR     BIT(4)      /*!< host supports DDR mode for SD/MMC */
-//    #define SDMMC_HOST_FLAG_DEINIT_ARG BIT(5)      /*!< host `deinit` function called with the slot argument */
-#endif
-//	        int slot;                   /*!< slot number, to be passed to host functions */
-//	        int max_freq_khz;           /*!< max frequency supported by the host */
-#if 0
-//    #define SDMMC_FREQ_DEFAULT      20000       /*!< SD/MMC Default speed (limited by clock divider) */
-//    #define SDMMC_FREQ_HIGHSPEED    40000       /*!< SD High speed (limited by clock divider) */
-//    #define SDMMC_FREQ_PROBING      400         /*!< SD/MMC probing speed */
-//    #define SDMMC_FREQ_52M          52000       /*!< MMC 52MHz speed */
-//    #define SDMMC_FREQ_26M          26000       /*!< MMC 26MHz speed */
-#endif
-//	        float io_voltage;           /*!< I/O voltage used by the controller (voltage switching is not supported) */
-//	        esp_err_t (*init)(void);    /*!< Host function to initialize the driver */
-
-//	        int command_timeout_ms;     /*!< timeout, in milliseconds, of a single command. Set to 0 to use the default value. */
-//	    } sdmmc_host_t;
-
-//	    // Default constructor
-//	    Host(bus::width = bus::width_def, Pullup = nopullup);
-//	    // Constructor with default slot configuration by number of the slot
-//	    Host(Slot::number, bus::width = bus::width_def, Pullup = nopullup);
-//	    // Custom slot configuration in temporary obj for desired slot number
-//	    Host(Slot::number, sdmmc_slot_config_t&& slot_config);	// in temporary object
-//	    Host(Slot::number, Slot&&, bus::width = bus::width_def, Pullup = nopullup);	// in temporary object
-//	    Host(Slot::number, const sdmmc_slot_config_t& slot_config);	// in lvalue object
-//	    Host(Slot::number, const Slot&, bus::width = bus::width_def, Pullup = nopullup);	// in lvalue object
-//	    // Copy constructors
-//	    Host(const Host&, bus::width = bus::width_def, Pullup = nopullup);		// for lvalue object (defined variable)
-//	    // for lvalue object (defined variable)
-//	    Host(const sdmmc_host_t&, bus::width = bus::width_def, Pullup = nopullup);
-//	    // for rvalue oblect (e.g. temporary object)
-//	    Host(sdmmc_host_t&&, bus::width = bus::width_def, Pullup = nopullup) noexcept;
-//
-//	    // for lvalue object (defined variable)
-//	    Host(const sdmmc_host_t& ehost, const sdmmc_slot_config_t& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup):
-//		Host(ehost, busw, pullst)/*, slot(eslot)*/{_slot = eslot;};
-//	    // for rvalue oblect (e.g. temporary object)
-//	    Host(sdmmc_host_t&& ehost, sdmmc_slot_config_t&& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup) noexcept:
-//		    Host(ehost, busw, pullst)/*, slot(eslot)*/ {_slot = eslot;};
-
 	/// Default constructor
 	Host(): io(this) {};
 	// "copy" constructor
@@ -174,144 +102,90 @@ namespace SD //-----------------------------------------------------------------
 //	    // move constructor
 //	    Host(Host&& host): Host(host.cfg) {};
 
-//	    Slot& slot() { return _slot;};
+	virtual ~Host() {};
 
-//	operator sdmmc_host_t&() {return cfg;};
-//	operator sdmmc_host_t*() {return &cfg;};
-
-//	Host& operator =(const Host&);
-//	Host& operator =(const sdmmc_host_t&);
-//	Host& operator =(sdmmc_host_t&& host) noexcept { return operator =(host); };
-
-//	    void set_pullup(Pullup pullup_st) { _slot.internal_pullup((pullup_st == pullup)? true: false);}
-//	    bool pullup_state() {return _slot.pullup_state();};
-
-//	    // use сarefully! may be incorrect behavior!
-//	    int slot_no() {return cfg.slot;}
-//	    int slot_no(Slot::number num) {int old = cfg.slot; cfg.slot = num; return old;}
-
-	// Initialize SDMMC host peripheral.
+	//!
+	// @brief Initialize SDMMC/SDSPI host peripheral.
 	//
-	// Warning! This function is deprecate!
-	// Warning! This function is not thread safe!
+	// @note This function is not thread safe
 	//
-	// Return:
-	//	    ESP_OK on success
-	//	    ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
-	//	    ESP_ERR_NO_MEM if memory can not be allocated
-	esp_err_t virtual pure_init(void) = 0 /*{ return sdmmc_host_init(); }*/;
+	// @return
+	//      - ESP_OK on success
+	//	- ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
+	//	- ESP_ERR_NO_MEM if memory can not be allocated
+	esp_err_t virtual pure_init(void) = 0;
 
-	// Initialize given slot of SDMMC peripheral.
+	//!
+	// @brief Initialize given slot of SDMMC peripheral
+	//
 	// On the ESP32, SDMMC peripheral has two slots:
-	//	    Slot 0: 8-bit wide, maps to HS1_* signals in PIN MUX
-	//	    Slot 1: 4-bit wide, maps to HS2_* signals in PIN MUX
-	// Card detect and write protect signals can be routed to arbitrary GPIOs using GPIO matrix.
-	// Warning! This function is not thread safe
-	// Parameters
-	//      slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	//      slot_config – additional configuration for the slot
-	// Returns
-	//      ESP_OK on success
-	//      ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
-	esp_err_t virtual init() = 0 /*{return sdmmc_host_init_slot(cfg.slot, &_slot.cfg); }*/;
-//	    esp_err_t init(int slot, const sdmmc_slot_config_t *slot_config);
-//	    esp_err_t virtual init(Slot::number, const Slot& extern_slot) = 0;
-////	    esp_err_t init(int slot, const sdmmc_slot_config_t& slot_config);
-//	    esp_err_t virtual init(Slot::number, Slot&& extern_slot) = 0;
+	//  - Slot 0: 8-bit wide, maps to HS1_* signals in PIN MUX
+	//  - Slot 1: 4-bit wide, maps to HS2_* signals in PIN MUX
+	//
+	// Card detect and write protect signals can be routed to
+	// arbitrary GPIOs using GPIO matrix.
+	//
+	// @note This function is not thread safe
+	//
+	// @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	// @param slot_config  additional configuration for the slot
+	// @return
+	//      - ESP_OK on success
+	//      - ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
+	esp_err_t virtual init() = 0;
 
-//	    // Select bus width to be used for data transfer.
-//	    // SD/MMC card must be initialized prior to this command, and a command to set bus width has to be sent to the card (e.g. SD_APP_SET_BUS_WIDTH)
-//	    // Note
-//	    // This function is not thread safe
-//	    // Parameters
-//	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-//	    //	    width – bus width (1, 4, or 8 for slot 0; 1 or 4 for slot 1)
-//	    // Returns
-//	    //	    ESP_OK on success
-//	    //	    ESP_ERR_INVALID_ARG if slot number or width is not valid
-////	    esp_err_t (*set_bus_width)(int slot, size_t width);    /*!< host function to set bus width */
-//	    esp_err_t bus_width(bus::width width) { return cfg.set_bus_width(cfg.slot, width); };
-//					    // return sdmmc_host_set_bus_width(cfg.slot, width); };
-
-//	    // Get bus width configured in sdmmc_host_init_slot to be used for data transfer.
-//	    // Parameters
-//	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-//	    // Returns
-//	    //	    configured bus width of the specified slot.
-////	    size_t (*get_bus_width)(int slot); /*!< host function to get bus width */
-//	    size_t bus_width() { return cfg.get_bus_width(cfg.slot); };
-//			//return sdmmc_host_get_slot_width(cfg.slot);};
-
-	// Set card clock frequency.
-	// Currently only integer fractions of 40MHz clock can be used. For High Speed cards, 40MHz can be used. For Default Speed cards, 20MHz can be used.
-	// Note
-	// This function is not thread safe
-	// Parameters
-	//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	//	    freq_khz – card clock frequency, in kHz
-	// Returns
-	//	    ESP_OK on success
-	//	    other error codes may be returned in the future
-	//        esp_err_t (*set_card_clk)(int slot, uint32_t freq_khz); /*!< host function to set card clock frequency */
-	esp_err_t virtual set_card_clk(uint32_t freq_khz) = 0 /*{return cfg.set_card_clk(cfg.slot, freq_khz); }*/;
-					// return sdmmc_host_set_card_clk(cfg.slot, freq_khz);};
-
-// -- Only for SD::MMC interface
-//    // Enable or disable DDR mode of SD interface.
-//    // Parameters
-//    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-//    //	    ddr_enabled – enable or disable DDR mode
-//    // Returns
-//    //	    ESP_OK on success
-//    //	    ESP_ERR_NOT_SUPPORTED if DDR mode is not supported on this slot
-////        esp_err_t (*set_bus_ddr_mode)(int slot, bool ddr_enable); /*!< host function to set DDR mode */
-//    esp_err_t set_ddr_mode(bool ddr_enabled) { return cfg.set_bus_ddr_mode(cfg.slot, ddr_enabled);
-//					/*return sdmmc_host_set_bus_ddr_mode(cfg.slot, ddr_enabled);*/ };
-
-	// Send command to the card and get response.
-	// This function returns when command is sent and response is received, or data is transferred, or timeout occurs.
-	// Attention
-	//	    Data buffer passed in cmdinfo->data must be in DMA capable memory
-	// Warning! This function is not thread safe w.r.t. init/deinit functions, and bus width/clock speed configuration
-	//		functions. Multiple tasks can call sdmmc_host_do_transaction as long as other sdmmc_host_* functions
-	//		are not called.
-	// Parameters
-	//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	//	    cmdinfo – pointer to structure describing command and data to transfer
-	// Returns
-	//	    ESP_OK on success
-	//	    ESP_ERR_TIMEOUT if response or data transfer has timed out
-	//	    ESP_ERR_INVALID_CRC if response or data transfer CRC check has failed
-	//	    ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
-	//	    ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
-	//	    ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
-//        esp_err_t (*do_transaction)(int slot, sdmmc_command_t* cmdinfo);    /*!< host function to do a transaction */
-	esp_err_t virtual do_transaction(sdmmc_command_t *cmdinfo) = 0 /*{ return cfg.do_transaction(cfg.slot, cmdinfo)*/;
-//							/*return sdmmc_host_do_transaction(cfg.slot, cmdinfo);*/ };
-	esp_err_t virtual do_transaction(sdmmc_command_t& cmdinfo) = 0 /*{ return cfg.do_transaction(cfg.slot, &cmdinfo)*/;
-//							/*return sdmmc_host_do_transaction(cfg.slot, &cmdinfo);*/ };
-
-	/**
-	 * @brief Remove an SD SPI device
-	 *
-	 * @param handle Handle of the SD SPI device
-	 * @return Always ESP_OK
-	 */
-//	//esp_err_t sdspi_host_remove_device(sdspi_dev_handle_t handle);
-//	esp_err_t virtual remove() = 0;
+	//!
+	// @brief Set card clock frequency
+	//
+	// Currently only integer fractions of 40MHz clock can be used.
+	// For High Speed cards, 40MHz can be used.
+	// For Default Speed cards, 20MHz can be used.
+	//
+	// @note This function is not thread safe
+	//
+	// @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	// @param freq_khz  card clock frequency, in kHz
+	// @return
+	//      - ESP_OK on success
+	//      - other error codes may be returned in the future
+	esp_err_t virtual set_card_clk(uint32_t freq_khz) = 0;
 
 
-	// Disable SDMMC host and release allocated resources.
-	// Warning! This function is not thread safe
-	// Returns
-	//	    ESP_OK on success
-	//	    ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
-	//	    esp_err_t sdmmc_host_deinit(void)
-//        union {
-//            esp_err_t (*deinit)(void);  /*!< host function to deinitialize the driver */
-//            esp_err_t (*deinit_p)(int slot);  /*!< host function to deinitialize the driver, called with the `slot` */
-//        };
-//    esp_err_t deinit(void) { return sdmmc_host_deinit();};
+	//!
+	// @brief Send command to the card and get response
+	//
+	// Host function to do a transaction
+	// This function returns when command is sent and response is received,
+	// or data is transferred, or timeout occurs.
+	//
+	// @note This function is not thread safe w.r.t. init/deinit functions,
+	//       and bus width/clock speed configuration functions. Multiple tasks
+	//       can call sdmmc_host_do_transaction as long as other sdmmc_host_*
+	//       functions are not called.
+	//
+	// @attention Data buffer passed in cmdinfo->data must be in DMA capable memory
+	//
+	// @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	// @param cmdinfo   pointer to structure describing command and data to transfer
+	// @return
+	//      - ESP_OK on success
+	//      - ESP_ERR_TIMEOUT if response or data transfer has timed out
+	//      - ESP_ERR_INVALID_CRC if response or data transfer CRC check has failed
+	//      - ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
+	//      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
+	//      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
+	esp_err_t virtual do_transaction(sdmmc_command_t *cmdinfo) = 0;
+	esp_err_t virtual do_transaction(sdmmc_command_t& cmdinfo) = 0;
+
+
+	//!
+	// @brief Disable SDMMC host and release allocated resources
+	//
+	// @note This function is not thread safe
+	//
+	// @return
+	//      - ESP_OK on success
+	//      - ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
 	esp_err_t virtual deinit() = 0;
 
 	struct IO
@@ -321,22 +195,25 @@ namespace SD //-----------------------------------------------------------------
 	    struct INT
 	    {
 		INT(IO* parent): io(*parent) {};
-		// Enable IO interrupts.
+
+		//!
+		// @brief Enable IO interrupts
+		//
 		// This function configures the host to accept SDIO interrupts.
-		// Parameters
-		//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-		// Returns
-		//	    ESP_OK, other errors possible in the future
+		// (Public wrapper which call private virtual implementation of it.)
+		//
+		// @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		// @return returns ESP_OK, other errors possible in the future
 		esp_err_t enable() { return io.host.io_int_enable(); };
 
-		// Block until an SDIO interrupt is received, or timeout occurs.
-		// Parameters
-		//	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-		//	    timeout_ticks – number of RTOS ticks to wait for the interrupt
-		// Returns
-		//	    ESP_OK on success (interrupt received)
-		//	    ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
-	//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
+		//!
+		// @brief Block until an SDIO interrupt is received, or timeout occurs
+		//       (Public wrapper which call private virtual implementation of it.)
+		// @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+		// @param timeout_ticks  number of RTOS ticks to wait for the interrupt
+		// @return
+		//  - ESP_OK on success (interrupt received)
+		//  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 		esp_err_t wait(TickType_t timeout_ticks) { return io.host.io_int_wait(timeout_ticks);};
 	    private:
 		IO& io;
@@ -360,34 +237,30 @@ namespace SD //-----------------------------------------------------------------
 	// production applications.
 //	sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
 
-	friend class Card;
-
-//    Slot _slot;
-
 	//!
 	// @brief Enable IO interrupts
 	//
 	// This function configures the host to accept SDIO interrupts.
+	// (Private pure virtual method whuch implementation of it.)
 	//
 	// @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	// @return returns ESP_OK, other errors possible in the future
-
-	//        esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
-	esp_err_t virtual io_int_enable() = 0 /*{ return cfg.io_int_enable(cfg.slot)*/;
-	//    /*return sdmmc_host_io_int_enable(cfg.slot);*/ };
+	esp_err_t virtual io_int_enable() = 0;
 
 	//!
 	// @brief Block until an SDIO interrupt is received, or timeout occurs
+	//       (Public wrapper which call private virtual implementation of it.)
 	// @param slot    -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	// @param timeout_ticks  number of RTOS ticks to wait for the interrupt
 	// @return
 	//  - ESP_OK on success (interrupt received)
 	//  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 	//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	esp_err_t virtual io_int_wait(TickType_t timeout_ticks) = 0 /*{ return cfg.io_int_wait(cfg.slot, timeout_ticks)*/;
-							//    /*return sdmmc_host_io_int_wait(cfg.slot, timeout_ticks);*/};
+	esp_err_t virtual io_int_wait(TickType_t timeout_ticks) = 0;
+
     }; /* struct SD::Host */
 
+    class Card;
 
     namespace MMC
     {
@@ -395,22 +268,7 @@ namespace SD //-----------------------------------------------------------------
 	// SD::MMC Host
 	struct Host: public SD::Host
 	{
-//	    enum Flags {
-//		support_1bit = SDMMC_HOST_FLAG_1BIT,	/*!< host supports 1-line SD and MMC protocol */
-//		support_4bit = SDMMC_HOST_FLAG_4BIT,	/*!< host supports 4-line SD and MMC protocol */
-//		support_8bit = SDMMC_HOST_FLAG_8BIT,	/*!< host supports 8-line MMC protocol */
-//		support_SPI  = SDMMC_HOST_FLAG_SPI,	/*!< host supports SPI protocol */
-//		support_DDR  = SDMMC_HOST_FLAG_DDR,	/*!< host supports DDR mode for SD/MMC */
-//		support_deinit = SDMMC_HOST_FLAG_DEINIT_ARG	/*!< host `deinit` function called with the slot argument */
-//	    }; /* Flags */
-//
-//	    enum Freq {
-//		freq_default = SDMMC_FREQ_DEFAULT,	/*!< SD/MMC Default speed (limited by clock divider) */
-//		freq_highspeed = SDMMC_FREQ_HIGHSPEED,	/*!< SD High speed (limited by clock divider) */
-//		freq_probing = SDMMC_FREQ_PROBING,	/*!< SD/MMC probing speed */
-//		freq_52M     = SDMMC_FREQ_52M,	/*!< MMC 52MHz speed */
-//		freq_26M     = SDMMC_FREQ_26M	/*!< MMC 26MHz speed */
-//	    }; /* Freq */
+	    friend class SD::Card;
 
 	    enum Pullup {
 		nopullup,
@@ -478,218 +336,200 @@ namespace SD //-----------------------------------------------------------------
 	    void set_pullup(Pullup pullup_st) { _slot.internal_pullup((pullup_st == pullup)? true: false);}
 	    bool pullup_state() {return _slot.pullup_state();};
 
-	    // use сarefully! may be incorrect behavior!
+	    /// @warning use сarefully! may be incorrect behavior!
 	    int slot_no() {return cfg.slot;}
 	    int slot_no(Slot::number num) {int old = cfg.slot; cfg.slot = num; return old;}
 
-	    // Initialize SDMMC host peripheral.
-	    //
-	    // Warning! This function is deprecate!
-	    // Warning! This function is not thread safe!
-	    //
-	    // Return:
-	    //	    ESP_OK on success
-	    //	    ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
-	    //	    ESP_ERR_NO_MEM if memory can not be allocated
-	    esp_err_t pure_init(void) { return sdmmc_host_init(); };
 
-	    // Initialize given slot of SDMMC peripheral.
+	    //!
+	    // @brief Initialize SDMMC host peripheral
+	    //
+	    // @warning This function is deprecate!
+	    // @note This function is not thread safe
+	    //
+	    // @return
+	    //      - ESP_OK on success
+	    //	- ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
+	    //	- ESP_ERR_NO_MEM if memory can not be allocated
+	    [[deprecated("Use the \"init()\" procedure or sdmmc_host_init_slot() instead")]]
+	    esp_err_t pure_init(void) override { return sdmmc_host_init(); };
+
+	    //!
+	    // @brief Initialize given slot of SDMMC peripheral
+	    //
 	    // On the ESP32, SDMMC peripheral has two slots:
-	    //	    Slot 0: 8-bit wide, maps to HS1_* signals in PIN MUX
-	    //	    Slot 1: 4-bit wide, maps to HS2_* signals in PIN MUX
-	    // Card detect and write protect signals can be routed to arbitrary GPIOs using GPIO matrix.
-	    // Warning! This function is not thread safe
-	    // Parameters
-	    //      slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    //      slot_config – additional configuration for the slot
-	    // Returns
-	    //      ESP_OK on success
-	    //      ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
-	    esp_err_t init() {return sdmmc_host_init_slot(cfg.slot, &_slot.cfg); };
+	    //  - Slot 0: 8-bit wide, maps to HS1_* signals in PIN MUX
+	    //  - Slot 1: 4-bit wide, maps to HS2_* signals in PIN MUX
+	    //
+	    // Card detect and write protect signals can be routed to
+	    // arbitrary GPIOs using GPIO matrix.
+	    //
+	    // @note This function is not thread safe
+	    //
+	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @param slot_config  additional configuration for the slot
+	    // @return
+	    //      - ESP_OK on success
+	    //      - ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
+	    esp_err_t init() override {return sdmmc_host_init_slot(cfg.slot, &_slot.cfg); };
 //	    esp_err_t init(int slot, const sdmmc_slot_config_t *slot_config);
 	    esp_err_t init(Slot::number, const Slot& extern_slot);
 //	    esp_err_t init(int slot, const sdmmc_slot_config_t& slot_config);
 	    esp_err_t init(Slot::number, Slot&& extern_slot);
 
-	    // Select bus width to be used for data transfer.
-	    // SD/MMC card must be initialized prior to this command, and a command to set bus width has to be sent to the card (e.g. SD_APP_SET_BUS_WIDTH)
-	    // Note
-	    // This function is not thread safe
-	    // Parameters
-	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    //	    width – bus width (1, 4, or 8 for slot 0; 1 or 4 for slot 1)
-	    // Returns
-	    //	    ESP_OK on success
-	    //	    ESP_ERR_INVALID_ARG if slot number or width is not valid
+	    //!
+	    // @brief Select bus width to be used for data transfer
+	    //
+	    // SD/MMC card must be initialized prior to this command, and a command to set
+	    // bus width has to be sent to the card (e.g. SD_APP_SET_BUS_WIDTH)
+	    //
+	    // @note This function is not thread safe
+	    //
+	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @param width  bus width (1, 4, or 8 for slot 0; 1 or 4 for slot 1)
+	    // @return
+	    //      - ESP_OK on success
+	    //      - ESP_ERR_INVALID_ARG if slot number or width is not valid
 //	    esp_err_t (*set_bus_width)(int slot, size_t width);    /*!< host function to set bus width */
 	    esp_err_t bus_width(bus::width width) { return cfg.set_bus_width(cfg.slot, width); };
 					    // return sdmmc_host_set_bus_width(cfg.slot, width); };
 
-	    // Get bus width configured in sdmmc_host_init_slot to be used for data transfer.
-	    // Parameters
-	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    // Returns
-	    //	    configured bus width of the specified slot.
+	    //!
+	    // @brief Get bus width configured in ``sdmmc_host_init_slot`` to be used for data transfer
+	    //
+	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @return configured bus width of the specified slot.
 //	    size_t (*get_bus_width)(int slot); /*!< host function to get bus width */
 	    size_t bus_width() { return cfg.get_bus_width(cfg.slot); };
 			//return sdmmc_host_get_slot_width(cfg.slot);};
 
-	    // Set card clock frequency.
-	    // Currently only integer fractions of 40MHz clock can be used. For High Speed cards, 40MHz can be used. For Default Speed cards, 20MHz can be used.
-	    // Note
-	    // This function is not thread safe
-	    // Parameters
-	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    //	    freq_khz – card clock frequency, in kHz
-	    // Returns
-	    //	    ESP_OK on success
-	    //	    other error codes may be returned in the future
+	    //!
+	    // @brief Set card clock frequency
+	    //
+	    // Currently only integer fractions of 40MHz clock can be used.
+	    // For High Speed cards, 40MHz can be used.
+	    // For Default Speed cards, 20MHz can be used.
+	    //
+	    // @note This function is not thread safe
+	    //
+	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @param freq_khz  card clock frequency, in kHz
+	    // @return
+	    //      - ESP_OK on success
+	    //      - other error codes may be returned in the future
 	    //        esp_err_t (*set_card_clk)(int slot, uint32_t freq_khz); /*!< host function to set card clock frequency */
 	    esp_err_t set_card_clk(uint32_t freq_khz) {return cfg.set_card_clk(cfg.slot, freq_khz); };
 					// return sdmmc_host_set_card_clk(cfg.slot, freq_khz);};
 
-    // Enable or disable DDR mode of SD interface.
-    // Parameters
-    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-    //	    ddr_enabled – enable or disable DDR mode
-    // Returns
-    //	    ESP_OK on success
-    //	    ESP_ERR_NOT_SUPPORTED if DDR mode is not supported on this slot
-//        esp_err_t (*set_bus_ddr_mode)(int slot, bool ddr_enable); /*!< host function to set DDR mode */
-    esp_err_t set_ddr_mode(bool ddr_enabled) { return cfg.set_bus_ddr_mode(cfg.slot, ddr_enabled);
+	    //!
+	    // @brief Enable or disable DDR mode of SD interface
+	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @param ddr_enabled  enable or disable DDR mode
+	    // @return
+	    //      - ESP_OK on success
+	    //      - ESP_ERR_NOT_SUPPORTED if DDR mode is not supported on this slot
+//	    esp_err_t (*set_bus_ddr_mode)(int slot, bool ddr_enable); /*!< host function to set DDR mode */
+	    esp_err_t set_ddr_mode(bool ddr_enabled) { return cfg.set_bus_ddr_mode(cfg.slot, ddr_enabled);
 					/*return sdmmc_host_set_bus_ddr_mode(cfg.slot, ddr_enabled);*/ };
 
-    // Send command to the card and get response.
-    // This function returns when command is sent and response is received, or data is transferred, or timeout occurs.
-    // Attention
-    //	    Data buffer passed in cmdinfo->data must be in DMA capable memory
-    // Warning! This function is not thread safe w.r.t. init/deinit functions, and bus width/clock speed configuration
-    //		functions. Multiple tasks can call sdmmc_host_do_transaction as long as other sdmmc_host_* functions
-    //		are not called.
-    // Parameters
-    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-    //	    cmdinfo – pointer to structure describing command and data to transfer
-    // Returns
-    //	    ESP_OK on success
-    //	    ESP_ERR_TIMEOUT if response or data transfer has timed out
-    //	    ESP_ERR_INVALID_CRC if response or data transfer CRC check has failed
-    //	    ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
-    //	    ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
-    //	    ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
-//        esp_err_t (*do_transaction)(int slot, sdmmc_command_t* cmdinfo);    /*!< host function to do a transaction */
-    esp_err_t do_transaction(sdmmc_command_t *cmdinfo) { return cfg.do_transaction(cfg.slot, cmdinfo);
+	    //!
+	    // @brief Send command to the card and get response
+	    //
+	    // Host function to do a transaction
+	    // This function returns when command is sent and response is received,
+	    // or data is transferred, or timeout occurs.
+	    //
+	    // @note This function is not thread safe w.r.t. init/deinit functions,
+	    //       and bus width/clock speed configuration functions. Multiple tasks
+	    //       can call sdmmc_host_do_transaction as long as other sdmmc_host_*
+	    //       functions are not called.
+	    //
+	    // @attention Data buffer passed in cmdinfo->data must be in DMA capable memory
+	    //
+	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @param cmdinfo   pointer to structure describing command and data to transfer
+	    // @return
+	    //      - ESP_OK on success
+	    //      - ESP_ERR_TIMEOUT if response or data transfer has timed out
+	    //      - ESP_ERR_INVALID_CRC if response or data transfer CRC check has failed
+	    //      - ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
+	    //      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
+	    //      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
+//	    esp_err_t (*do_transaction)(int slot, sdmmc_command_t* cmdinfo);    /*!< host function to do a transaction */
+	    esp_err_t do_transaction(sdmmc_command_t *cmdinfo) { return cfg.do_transaction(cfg.slot, cmdinfo);
 							/*return sdmmc_host_do_transaction(cfg.slot, cmdinfo);*/ };
-    esp_err_t do_transaction(sdmmc_command_t& cmdinfo) { return cfg.do_transaction(cfg.slot, &cmdinfo);
+	    esp_err_t do_transaction(sdmmc_command_t& cmdinfo) { return cfg.do_transaction(cfg.slot, &cmdinfo);
 							/*return sdmmc_host_do_transaction(cfg.slot, &cmdinfo);*/ };
 
+	    //!
+	    // @brief Disable SDMMC host and release allocated resources
+	    //
+	    // @note This function is not thread safe
+	    //
+	    // @return
+	    //      - ESP_OK on success
+	    //      - ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
+//	    union {
+//		esp_err_t (*deinit)(void);  /*!< host function to deinitialize the driver */
+//		esp_err_t (*deinit_p)(int slot);  /*!< host function to deinitialize the driver, called with the `slot` */
+//	    };
+	    esp_err_t deinit(void) { return sdmmc_host_deinit();};
 
-    // Disable SDMMC host and release allocated resources.
-    // Warning! This function is not thread safe
-    // Returns
-    //	    ESP_OK on success
-    //	    ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
-    //	    esp_err_t sdmmc_host_deinit(void)
-//        union {
-//            esp_err_t (*deinit)(void);  /*!< host function to deinitialize the driver */
-//            esp_err_t (*deinit_p)(int slot);  /*!< host function to deinitialize the driver, called with the `slot` */
-//        };
-    esp_err_t deinit(void) { return sdmmc_host_deinit();};
-
-#if 0
-    struct IO
-    {
-	IO(Host* parent): interrupt(this), host(*parent) {};
-
-	struct INT
-	{
-	    INT(IO* parent): io(*parent) {};
-	    // Enable IO interrupts.
-	    // This function configures the host to accept SDIO interrupts.
-	    // Parameters
-	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    // Returns
-	    //	    ESP_OK, other errors possible in the future
-	//        esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
-	    esp_err_t enable() { return /*cfg.io_int_enable(cfg.slot);*/
-				    /*return*/ sdmmc_host_io_int_enable(io.host. cfg.slot); };
-
-	    // Block until an SDIO interrupt is received, or timeout occurs.
-	    // Parameters
-	    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    //	    timeout_ticks – number of RTOS ticks to wait for the interrupt
-	    // Returns
-	    //	    ESP_OK on success (interrupt received)
-	    //	    ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
-	//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	    esp_err_t wait(TickType_t timeout_ticks) { return /*cfg.io_int_wait(cfg.slot, timeout_ticks);*/
-							    /*return*/ sdmmc_host_io_int_wait(io.host.cfg.slot, timeout_ticks);};
 	private:
-	    IO& io;
-	}; /* INT */
 
-	INT interrupt;
+	    // Use settings defined above to initialize SD card and mount FAT filesystem.
+	    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
+	    // Please check its source code and implement error recovery when developing
+	    // production applications.
+	    sdmmc_host_t cfg = SDMMC_HOST_DEFAULT(); // @suppress("Invalid arguments")
 
-    private:
-	Host& host;
-    }; /* struct IO */
+	    Slot _slot;
 
-    IO io = this;
-#endif
-
-private:
-
-    // Use settings defined above to initialize SD card and mount FAT filesystem.
-    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
-    // Please check its source code and implement error recovery when developing
-    // production applications.
-    sdmmc_host_t cfg = SDMMC_HOST_DEFAULT(); // @suppress("Invalid arguments")
-
-    friend class Card;
-
-    Slot _slot;
-
-    // Enable IO interrupts.
-    // This function configures the host to accept SDIO interrupts.
-    // Parameters
-    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-    // Returns
-    //	    ESP_OK, other errors possible in the future
-//        esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
-    esp_err_t io_int_enable() { return cfg.io_int_enable(cfg.slot);
+	    //!
+	    // @brief Enable IO interrupts
+	    //
+	    // This function configures the host to accept SDIO interrupts.
+	    // (Private pure virtual method whuch implementation of it.)
+	    //
+	    // @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @return returns ESP_OK, other errors possible in the future
+//	    esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
+	    esp_err_t io_int_enable() override { return cfg.io_int_enable(cfg.slot);
 			    /*return sdmmc_host_io_int_enable(cfg.slot);*/ };
 
-    // Block until an SDIO interrupt is received, or timeout occurs.
-    // Parameters
-    //	    slot – slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-    //	    timeout_ticks – number of RTOS ticks to wait for the interrupt
-    // Returns
-    //	    ESP_OK on success (interrupt received)
-    //	    ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
-//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-    esp_err_t io_int_wait(TickType_t timeout_ticks) { return cfg.io_int_wait(cfg.slot, timeout_ticks);
+	    //!
+	    // @brief Block until an SDIO interrupt is received, or timeout occurs
+	    //       (Public wrapper which call private virtual implementation of it.)
+	    // @param slot    -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
+	    // @param timeout_ticks  number of RTOS ticks to wait for the interrupt
+	    // @return
+	    //  - ESP_OK on success (interrupt received)
+	    //  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
+	    //        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
+//	    esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
+	    esp_err_t io_int_wait(TickType_t timeout_ticks) { return cfg.io_int_wait(cfg.slot, timeout_ticks);
 						    /*return sdmmc_host_io_int_wait(cfg.slot, timeout_ticks);*/};
+	}; /* struct SD::MMC::Host */
 
-	}; /* struct Host */
+//    }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
+//
+//
+//
+//    namespace MMC
+//    {
 
-    }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
-
-
-
-    namespace MMC
-    {
-
-class Card;
-
-
-// I/O operations for the SD/MMC card
-class IO
-{
-public:
-
-    // Constructor
-    IO(Card* holder);
+//	class Card;
 
 
+	// I/O operations for the SD/MMC card
+	class IO
+	{
+	public:
+
+	    // Constructor
+	    IO(Card* holder);
+
+#if 0
     // Enable SDIO interrupt in the SDMMC host
     // Parameters:
     //	    card – pointer to card information structure previously initialized using sdmmc_card_init
@@ -710,8 +550,49 @@ public:
     //	    ESP_ERR_TIMEOUT if the interrupt does not happen in timeout_ticks
     //    esp_err_t sdmmc_io_wait_int(sdmmc_card_t *card, TickType_t timeout_ticks)
     esp_err_t wait_int(TickType_t ticks);
+#endif
 
+	    class Interrupt
+	    {
 
+	    public:
+		Interrupt(IO* io): iohandler(*io) {};
+
+		//!
+		// Enable SDIO interrupt in the SDMMC host
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @return
+		//      - ESP_OK on success
+		//      - ESP_ERR_NOT_SUPPORTED if the host controller does not support
+		//        IO interrupts
+		//esp_err_t sdmmc_io_enable_int(sdmmc_card_t* card);
+		esp_err_t enable();
+
+		//!
+		// Block until an SDIO interrupt is received
+		//
+		// Slave uses D1 line to signal interrupt condition to the host.
+		// This function can be used to wait for the interrupt.
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param timeout_ticks  time to wait for the interrupt, in RTOS ticks
+		// @return
+		//      - ESP_OK if the interrupt is received
+		//      - ESP_ERR_NOT_SUPPORTED if the host controller does not support
+		//        IO interrupts
+		//      - ESP_ERR_TIMEOUT if the interrupt does not happen in timeout_ticks
+		//esp_err_t sdmmc_io_wait_int(sdmmc_card_t* card, TickType_t timeout_ticks);
+		esp_err_t wait(TickType_t ticks);
+
+	    private:
+		IO& iohandler;
+
+	    }; /* class SD::MMC::IO::Interrupt */
+
+#if 0
     // Get the data of CIS region of an SDIO card.
     // You may provide a buffer not sufficient to store all the CIS data. In this case, this function
     // stores as much data into your buffer as possible. Also, this function will try to get and return
@@ -749,154 +630,254 @@ public:
     //	    ESP_ERR_NOT_SUPPORTED: if the value from the card is not supported to be parsed.
     //	    ESP_ERR_INVALID_SIZE: if the CIS size fields are not correct.
     esp_err_t print_cis_info(uint8_t *buffer, size_t buffer_size, FILE *fp);
+#endif
+
+	    class CIS
+	    {
+	    public:
+		CIS(IO* io): iohandler(*io) {};
+
+		//!
+		// Get the data of CIS region of an SDIO card.
+		//
+		// You may provide a buffer not sufficient to store all the CIS data. In this
+		// case, this function stores as much data into your buffer as possible. Also,
+		// this function will try to get and return the size required for you.
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param outbuf out_buffer Output buffer of the CIS data
+//		// @param buffer_size Size of the buffer.
+		// @param inout_cis_size Mandatory, pointer to a size, input and output.
+		//              - input: Limitation of maximum searching range, should be 0 or larger than
+		//                      buffer_size. The function searches for CIS_CODE_END until this range. Set to
+		//                      0 to search infinitely.
+		//              - output: The size required to store all the CIS data, if CIS_CODE_END is found.
+		//
+		// @return
+		//      - ESP_OK: on success
+		//      - ESP_ERR_INVALID_RESPONSE: if the card does not (correctly) support CIS.
+		//      - ESP_ERR_INVALID_SIZE: CIS_CODE_END found, but buffer_size is less than
+		//              required size, which is stored in the inout_cis_size then.
+		//      - ESP_ERR_NOT_FOUND: if the CIS_CODE_END not found. Increase input value of
+		//              inout_cis_size or set it to 0, if you still want to search for the end;
+		//              output value of inout_cis_size is invalid in this case.
+		//      - and other error code return from sdmmc_io_read_bytes
+//		esp_err_t sdmmc_io_get_cis_data(sdmmc_card_t* card, uint8_t* out_buffer, size_t buffer_size, size_t* inout_cis_size);
+//		esp_err_t data(uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size);
+		esp_err_t data(std::vector<uint8_t> &outbuf, size_t &inout_cis_size);
+
+		//!
+		// Parse and print the CIS information of an SDIO card.
+		//
+		// @note Not all the CIS codes and all kinds of tuples are supported. If you
+		// see some unresolved code, you can add the parsing of these code in
+		// sdmmc_io.c and contribute to the IDF through the Github repository.
+		//
+		//              using sdmmc_card_init
+		// @param buff buffer Buffer to parse
+//		// @param buffer_size Size of the buffer.
+		// @param fp File pointer to print to, set to NULL to print to stdout.
+		//
+		// @return
+		//      - ESP_OK: on success
+		//      - ESP_ERR_NOT_SUPPORTED: if the value from the card is not supported to be parsed.
+		//      - ESP_ERR_INVALID_SIZE: if the CIS size fields are not correct.
+//		esp_err_t sdmmc_io_print_cis_info(uint8_t* buffer, size_t buffer_size, FILE* fp);
+//		esp_err_t info(uint8_t *buffer, size_t buffer_size, FILE *fp);
+		esp_err_t info(std::vector<uint8_t> buff, FILE *fp);
+
+	    private:
+		IO& iohandler;
+
+	    }; /* class SD::MMC::IO::CIS */
 
 
+	    // I/O Read operation functions
+	    class Read
+	    {
+	    public:
+		Read(IO* io)/*: iohandler(*io) {}*/;	// Constructor
 
-    // I/O Read operation functions
-    class Read
+		//!
+		// Read one byte from an SDIO card using IO_RW_DIRECT (CMD52)
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param function  IO function number
+		// @param reg  byte address within IO function
+		// @param[out] out_byte  output, receives the value read from the card
+		// @return
+		//      - ESP_OK on success
+		//      - One of the error codes from SDMMC host controller
+		//    esp_err_t sdmmc_io_read_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t *out_byte);
+		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t &out_byte)
+		    /*{ return sdmmc_io_read_byte(card.data, function, reg, out_byte);}*/;
+
+		//!
+		// Read multiple bytes from an SDIO card using IO_RW_EXTENDED (CMD53)
+		//
+		// This function performs read operation using CMD53 in byte mode.
+		// For block mode, see sdmmc_io_read_blocks.
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param function  IO function number
+		// @param addr  byte address within IO function where reading starts
+		// @param dst  buffer which receives the data read from card
+		// @param size  number of bytes to read; if size is zero - used dst.size()
+		// @return
+		//      - ESP_OK on success
+		//      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
+		//      - One of the error codes from SDMMC host controller
+		//    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
+//		esp_err_t bytes(uint32_t function, uint32_t addr, void *dst, size_t size)
+//		    /*{ return sdmmc_io_read_bytes(card.data, function, addr, dst, size);}*/;
+		esp_err_t bytes(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size = 0);
+
+		//!
+		// Read blocks of data from an SDIO card using IO_RW_EXTENDED (CMD53)
+		//
+		// This function performs read operation using CMD53 in block mode.
+		// For byte mode, see sdmmc_io_read_bytes.
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param function  IO function number
+		// @param addr  byte address within IO function where writing starts
+		// @param dst  buffer which receives the data read from card
+		// @param size  number of bytes to read, must be divisible by the card block
+		//              size; if size is zero - used dst.size().
+		// @return
+		//      - ESP_OK on success
+		//      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
+		//      - One of the error codes from SDMMC host controller
+		//    esp_err_t sdmmc_io_read_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
+		esp_err_t blocks(uint32_t function, uint32_t addr, void *dst, size_t size)
+		    /*{ return sdmmc_io_read_blocks(card.data, function, addr, dst, size);}*/;
+		esp_err_t blocks(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size = 0);
+	    private:
+		IO& iohandler;
+
+	    }; /* class SD::MMC::IO::Read */
+
+
+	    // I/O Write operation functions
+	    class Write
+	    {
+	    public:
+
+		// Constructor
+		Write(IO* io)/*: iohandler(*io) {}*/;
+
+		//!
+		// Write one byte to an SDIO card using IO_RW_DIRECT (CMD52)
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param function  IO function number
+		// @param reg  byte address within IO function
+		// @param in_byte  value to be written
+		// @param[out] out_byte  if not NULL, receives new byte value read
+		//                       from the card (read-after-write).
+		// @return
+		//      - ESP_OK on success
+		//      - One of the error codes from SDMMC host controller
+		//    esp_err_t sdmmc_io_write_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte);
+//		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte)
+//		    /*{ return sdmmc_io_write_byte(card.data, function, reg, in_byte, out_byte);}*/;
+		// Simply read the byte
+		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t in_byte);
+		// Read-after-write version of
+		esp_err_t byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t &out_byte);
+
+		//!
+		// Write multiple bytes to an SDIO card using IO_RW_EXTENDED (CMD53)
+		//
+		// This function performs write operation using CMD53 in byte mode.
+		// For block mode, see sdmmc_io_write_blocks.
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param function  IO function number
+		// @param addr  byte address within IO function where writing starts
+		// @param src  data to be written
+		// @param size  number of bytes to write; if size is zero - used dst.size()
+		// @return
+		//      - ESP_OK on success
+		//      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
+		//      - One of the error codes from SDMMC host controller
+		//    esp_err_t sdmmc_io_write_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
+//		esp_err_t bytes(uint32_t function, uint32_t addr, const void *src, size_t size)
+//		    /*{ return sdmmc_io_write_bytes(card.data, function, addr, src, size);}*/;
+		esp_err_t bytes(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size = 0);
+
+		//!
+		// Write blocks of data to an SDIO card using IO_RW_EXTENDED (CMD53)
+		//
+		// This function performs write operation using CMD53 in block mode.
+		// For byte mode, see sdmmc_io_write_bytes.
+		//
+		// @param card  pointer to card information structure previously initialized
+		//              using sdmmc_card_init
+		// @param function  IO function number
+		// @param addr  byte address within IO function where writing starts
+		// @param src  data to be written
+		// @param size  number of bytes to read, must be divisible by the card block
+		//              size; if size is zero - used dst.size().
+		// @return
+		//      - ESP_OK on success
+		//      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
+		//      - One of the error codes from SDMMC host controller
+		//    esp_err_t sdmmc_io_write_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
+//		esp_err_t blocks(uint32_t function, uint32_t addr, const void *src, size_t size)
+//		    /*{ return sdmmc_io_write_blocks(card.data, function, addr, src, size);}*/;
+		esp_err_t blocks(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size = 0);
+
+	    private:
+		IO& iohandler;
+
+	    }; /* class SD::MMC::IO::Write */
+
+	    Read read;
+	    Write write;
+	    Interrupt interrupt;
+	    CIS cis;
+
+	private:
+
+	    Card& card;
+
+	}; /* class SD::MMC::IO*/
+
+    }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
+
+
+    // Incapsulation the sdmmc_card_t type data &
+    // C++ wrapper for the api functions of it.
+    class Card
     {
     public:
-	Read(IO* io)/*: iohandler(*io) {}*/;	// Constructor
 
-	// Read one byte from an SDIO card using IO_RW_DIRECT (CMD52)
-	// Parameters
-	//	card – pointer to card information structure previously initialized using sdmmc_card_init
-	//	    function – IO function number
-	//	    reg – byte address within IO function
-	//	    out_byte – [out] output, receives the value read from the card
-	// Returns
-	//	    ESP_OK on success
-	//	    One of the error codes from SDMMC host controller
-	//    esp_err_t sdmmc_io_read_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t *out_byte);
-	esp_err_t byte(uint32_t function, uint32_t reg, uint8_t *out_byte)
-	    /*{ return sdmmc_io_read_byte(card.data, function, reg, out_byte);}*/;
+	Card();
 
-	// Read multiple bytes from an SDIO card using IO_RW_EXTENDED (CMD53)
-	// This function performs read operation using CMD53 in byte mode. For block mode, see sdmmc_io_read_blocks.
-	// Parameters
-	//	    card – pointer to card information structure previously initialized using sdmmc_card_init
-	//	    function – IO function number
-	//	    addr – byte address within IO function where reading starts
-	//	    dst – buffer which receives the data read from card
-	//	    size – number of bytes to read
-	// Returns
-	//	    ESP_OK on success
-	//	    ESP_ERR_INVALID_SIZE if size exceeds 512 bytes
-	//	    One of the error codes from SDMMC host controller
-	//    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
-	esp_err_t bytes(uint32_t function, uint32_t addr, void *dst, size_t size)
-	    /*{ return sdmmc_io_read_bytes(card.data, function, addr, dst, size);}*/;
+	//!
+	// Probe and initialize SD/MMC card using given host
+	//
+	// @note Only SD cards (SDSC and SDHC/SDXC) are supported now.
+	//       Support for MMC/eMMC cards will be added later.
+	//
+	// @param host  pointer to structure defining host controller
+	// @param out_card  pointer to structure which will receive information
+	//                  about the card when the function completes
+	// @return
+	//      - ESP_OK on success
+	//      - One of the error codes from SDMMC host controller
 
-	// Read blocks of data from an SDIO card using IO_RW_EXTENDED (CMD53)
-	// This function performs read operation using CMD53 in block mode. For byte mode, see sdmmc_io_read_bytes.
-	// Parameters:
-	//	    card – pointer to card information structure previously initialized using sdmmc_card_init
-	//	    function – IO function number
-	//	    addr – byte address within IO function where writing starts
-	//	    dst – buffer which receives the data read from card
-	//	    size – number of bytes to read, must be divisible by the card block size.
-	// Returns:
-	//	     ESP_OK on success
-	//	     ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes
-	//	     One of the error codes from SDMMC host controller
-	//    esp_err_t sdmmc_io_read_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
-	esp_err_t blocks(uint32_t function, uint32_t addr, void *dst, size_t size)
-	    /*{ return sdmmc_io_read_blocks(card.data, function, addr, dst, size);}*/;
-    private:
-	IO& iohandler;
-
-    }; /* Read */
-
-
-    // I/O Write operation functions
-    class Write
-    {
-    public:
-
-	// Constructor
-	Write(IO* io)/*: iohandler(*io) {}*/;
-
-	// Write one byte to an SDIO card using IO_RW_DIRECT (CMD52)
-	// Parameters
-	//	    card – pointer to card information structure previously initialized using sdmmc_card_init
-	//	    function – IO function number
-	//	    reg – byte address within IO function
-	//	    in_byte – value to be written
-	//	    out_byte – [out] if not NULL, receives new byte value read from the card (read-after-write).
-	// Returns
-	//	    ESP_OK on success
-	//	    One of the error codes from SDMMC host controller
-	//    esp_err_t sdmmc_io_write_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte);
-	esp_err_t byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte)
-	    /*{ return sdmmc_io_write_byte(card.data, function, reg, in_byte, out_byte);}*/;
-
-	// Write multiple bytes to an SDIO card using IO_RW_EXTENDED (CMD53)
-	// This function performs write operation using CMD53 in byte mode. For block mode, see sdmmc_io_write_blocks.
-	// Parameters
-	//	    card – pointer to card information structure previously initialized using sdmmc_card_init
-	//	    function – IO function number
-	//	    addr – byte address within IO function where writing starts
-	//	    src – data to be written
-	//	    size – number of bytes to write
-	// Returns
-	//	    ESP_OK on success
-	//	    ESP_ERR_INVALID_SIZE if size exceeds 512 bytes
-	//	    One of the error codes from SDMMC host controller
-	//    esp_err_t sdmmc_io_write_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
-	esp_err_t bytes(uint32_t function, uint32_t addr, const void *src, size_t size)
-	    /*{ return sdmmc_io_write_bytes(card.data, function, addr, src, size);}*/;
-
-	// Write blocks of data to an SDIO card using IO_RW_EXTENDED (CMD53)
-	// This function performs write operation using CMD53 in block mode. For byte mode, see sdmmc_io_write_bytes.
-	// Parameters:
-	//	    card – pointer to card information structure previously initialized using sdmmc_card_init
-	//	    function – IO function number
-	//	    addr – byte address within IO function where writing starts
-	//	    src – data to be written
-	//	    size – number of bytes to read, must be divisible by the card block size.
-	// Returns:
-	//	    ESP_OK on success
-	//	    ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes
-	//	    One of the error codes from SDMMC host controller
-	//    esp_err_t sdmmc_io_write_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
-	esp_err_t blocks(uint32_t function, uint32_t addr, const void *src, size_t size)
-	    /*{ return sdmmc_io_write_blocks(card.data, function, addr, src, size);}*/;
-
-    private:
-	IO& iohandler;
-
-    }; /* Write */
-
-    Read read;
-    Write write;
-
-private:
-
-    Card& card;
-
-}; /* IO*/
-
-
-// Incapsulation the sdmmc_card_t type data &
-// C++ wrapper for the api functions of it.
-class Card
-{
-public:
-
-    Card();
-
-    // Probe and initialize SD/MMC card using given host
-    // Warning! Only SD cards (SDSC and SDHC/SDXC) are supported now. Support for MMC/eMMC cards will be added later.
-    // Parameters:
-    //	    host – pointer to structure defining host controller
-    //	    out_card – pointer to structure which will receive information about the card when the function completes
-    // Returns
-    //	    ESP_OK on success
-    //	    One of the error codes from SDMMC host controller
-//    esp_err_t sdmmc_card_init(const sdmmc_host_t *host, sdmmc_card_t *out_card);
-    esp_err_t init(const sdmmc_host_t *host) { return sdmmc_card_init(host, self);};
-    esp_err_t init(const sdmmc_host_t& host) { return sdmmc_card_init(&host, self);};
-    esp_err_t init(const Host& host) { return sdmmc_card_init(&host.cfg, self);};
+//	esp_err_t sdmmc_card_init(const sdmmc_host_t *host, sdmmc_card_t *out_card);
+	esp_err_t init(const sdmmc_host_t *host) { return sdmmc_card_init(host, self);};
+	esp_err_t init(const sdmmc_host_t& host) { return sdmmc_card_init(&host, self);};
+	esp_err_t init(const MMC::Host& host) { return sdmmc_card_init(&host.cfg, self);};
 
     /// foe class Device: request formatting SD-card if mount failed
     struct format {
@@ -951,7 +932,7 @@ public:
     esp_err_t read_sectors(void *dst, size_t start_sector, size_t sector_count)
 		{ return sdmmc_read_sectors(self, dst, start_sector, sector_count);};
 
-    IO io;
+    MMC::IO io;
 
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5,0,0)
@@ -1025,6 +1006,10 @@ public:
 
 
 
+namespace MMC
+{
+
+
 // Implementation of the mounting actions:
 // - Options for mounting the filesystem.
 //     (If format_if_mount_failed is set
@@ -1041,7 +1026,7 @@ struct Device
 						.max_files = 5,
 						.allocation_unit_size = 16*1024,
 						.disk_status_check_enable = false});
-    Device(Card::format::mntfail autofmt,
+    Device(SD::Card::format::mntfail autofmt,
 	    int max_files = 5, size_t unit_size = 16 * 1024, bool disk_st_chk = false,
 	    bus::width = bus::width_def, Host::Pullup = Host::nopullup);
 
@@ -1086,54 +1071,109 @@ private:
     }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
 
 
-    //--[ class MMC::Card ]--------------------------------------------------------------------------------------------
+    //--[ class SD::Card ]---------------------------------------------------------------------------------------------
 
-    inline MMC::Card::Card():
+    inline Card::Card():
 	io(this),
 	ret(ESP_OK),
 	self(nullptr)
     {};
 
-    //--[ class IO inlines ]-------------------------------------------------------------------------------------------
+    //--[ class SD::MMC::IO inlines ]----------------------------------------------------------------------------------
 
     // Constructor
     inline MMC::IO::IO(Card* holder):
 	read(this),
 	write(this),
+	interrupt(this),
+	cis(this),
 	card(*holder)
     {};
 
-    /// Enable SDIO interrupt in the SDMMC host
-    //    esp_err_t sdmmc_io_enable_int(sdmmc_card_t *card);
+    //!
+    // Enable SDIO interrupt in the SDMMC host
+    // Inline mplementatipon
+    // Handling card object must be previously initialized
+    // by using sdmmc_card_init
+    //
+    // @return
+    //      - ESP_OK on success
+    //      - ESP_ERR_NOT_SUPPORTED if the host controller does not support
+    //        IO interrupts
     esp_err_t inline
-    MMC::IO::enable_int() {
-	return sdmmc_io_enable_int(card.self);};
+    MMC::IO::Interrupt::enable() {
+	return sdmmc_io_enable_int(iohandler.card.self);};
 
-    /// Block until an SDIO interrupt is received
-    /// Slave uses D1 line to signal interrupt condition to the host. This function can be used to wait for the interrupt.
-    //    esp_err_t sdmmc_io_wait_int(sdmmc_card_t *card, TickType_t timeout_ticks);
+    //!
+    // Block until an SDIO interrupt is received
+    // Inline mplementatipon
+    //
+    // Slave uses D1 line to signal interrupt condition to the host.
+    // This function can be used to wait for the interrupt.
+    // Handling card object must be previously initialized
+    // by using sdmmc_card_init
+    // @param timeout_ticks  time to wait for the interrupt, in RTOS ticks
+    // @return
+    //      - ESP_OK if the interrupt is received
+    //      - ESP_ERR_NOT_SUPPORTED if the host controller does not support
+    //        IO interrupts
+    //      - ESP_ERR_TIMEOUT if the interrupt does not happen in timeout_ticks
     esp_err_t inline
-    MMC::IO::wait_int(TickType_t timeout_ticks) {
-	return sdmmc_io_wait_int(card.self, timeout_ticks);};
+    MMC::IO::Interrupt::wait(TickType_t timeout_ticks) {
+	return sdmmc_io_wait_int(iohandler.card.self, timeout_ticks);};
 
-    /// Get the data of CIS region of an SDIO card.
-    /// You may provide a buffer not sufficient to store all the CIS data. In this case,
-    /// this function stores as much data into your buffer as possible. Also, this function will try
-    /// to get and return the size required for you.
-    //    esp_err_t sdmmc_io_get_cis_data(sdmmc_card_t *card, uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size);
+    //!
+    // Get the data of CIS region of an SDIO card.
+    // Inline implementation
+    //
+    // You may provide a buffer not sufficient to store all the CIS data. In this
+    // case, this function stores as much data into your buffer as possible. Also,
+    // this function will try to get and return the size required for you.
+    // Handling card object must be previously initialized
+    // by using sdmmc_card_init
+    //
+    // @param outbuf out_buffer Output buffer of the CIS data
+//    // @param buffer_size Size of the buffer.
+    // @param inout_cis_size Mandatory, pointer to a size, input and output.
+    //              - input: Limitation of maximum searching range, should be 0 or larger than
+    //                      buffer_size. The function searches for CIS_CODE_END until this range. Set to
+    //                      0 to search infinitely.
+    //              - output: The size required to store all the CIS data, if CIS_CODE_END is found.
+    //
+    // @return
+    //      - ESP_OK: on success
+    //      - ESP_ERR_INVALID_RESPONSE: if the card does not (correctly) support CIS.
+    //      - ESP_ERR_INVALID_SIZE: CIS_CODE_END found, but buffer_size is less than
+    //              required size, which is stored in the inout_cis_size then.
+    //      - ESP_ERR_NOT_FOUND: if the CIS_CODE_END not found. Increase input value of
+    //              inout_cis_size or set it to 0, if you still want to search for the end;
+    //              output value of inout_cis_size is invalid in this case.
+    //      - and other error code return from sdmmc_io_read_bytes
     esp_err_t inline
-    MMC::IO::get_cis_data(uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size) {
-	return sdmmc_io_get_cis_data(card.self, out_buffer, buffer_size, inout_cis_size);};
+//    MMC::IO::CIS::data(uint8_t *out_buffer, size_t buffer_size, size_t *inout_cis_size) {
+    MMC::IO::CIS::data(std::vector<uint8_t> &outbuf, size_t &inout_cis_size) {
+	return sdmmc_io_get_cis_data(iohandler.card.self, outbuf.data(), outbuf.size(), &inout_cis_size);};
 
-    /// Parse and print the CIS information of an SDIO card.
-    /// Warning!
-    ///	    Not all the CIS codes and all kinds of tuples are supported. If you see some unresolved code,
-    ///	    you can add the parsing of these code in sdmmc_io.c and contribute to the IDF through the Github repository.
-    ///         using sdmmc_card_init
-    //    esp_err_t sdmmc_io_print_cis_info(uint8_t *buffer, size_t buffer_size, FILE *fp);
+    //!
+    // Parse and print the CIS information of an SDIO card.
+    //
+    // @note Not all the CIS codes and all kinds of tuples are supported. If you
+    // see some unresolved code, you can add the parsing of these code in
+    // sdmmc_io.c and contribute to the IDF through the Github repository.
+    //
+    //              using sdmmc_card_init
+    // @param buff buffer Buffer to parse
+//    // @param buffer_size Size of the buffer.
+    // @param fp File pointer to print to, set to NULL to print to stdout.
+    //
+    // @return
+    //      - ESP_OK: on success
+    //      - ESP_ERR_NOT_SUPPORTED: if the value from the card is not supported to be parsed.
+    //      - ESP_ERR_INVALID_SIZE: if the CIS size fields are not correct.
     esp_err_t inline
-    MMC::IO::print_cis_info(uint8_t *buffer, size_t buffer_size, FILE *fp) {
-	return sdmmc_io_print_cis_info(buffer, buffer_size, fp);};
+//    MMC::IO::CIS::info(uint8_t *buffer, size_t buffer_size, FILE *fp) {
+    MMC::IO::CIS::info(std::vector<uint8_t> buff, FILE *fp) {
+	return sdmmc_io_print_cis_info(buff.data(), buff.size(), fp);};
 
 
     //--[ class IO::Read inlines ]-----------------------------------------------------------------------------------------
@@ -1143,25 +1183,76 @@ private:
 	iohandler(*io)
     {};
 
-    /// Read one byte from an SDIO card using IO_RW_DIRECT (CMD52)
+    //!
+    // Read one byte from an SDIO card using IO_RW_DIRECT (CMD52)
+    // Inline implementation
+    //
+    // @param card  pointer to card information structure previously initialized
+    //              using sdmmc_card_init
+    // @param function  IO function number
+    // @param reg  byte address within IO function
+    // @param[out] out_byte  output, receives the value read from the card
+    // @return
+    //      - ESP_OK on success
+    //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_read_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t *out_byte);
     esp_err_t inline
-    MMC::IO::Read::byte(uint32_t function, uint32_t reg, uint8_t *out_byte) {
-	return sdmmc_io_read_byte(iohandler.card.self, function, reg, out_byte);};
+    MMC::IO::Read::byte(uint32_t function, uint32_t reg, uint8_t &out_byte) {
+	return sdmmc_io_read_byte(iohandler.card.self, function, reg, &out_byte);};
 
-    /// Read multiple bytes from an SDIO card using IO_RW_EXTENDED (CMD53)
-    /// This function performs read operation using CMD53 in byte mode. For block mode, see sdmmc_io_read_blocks.
+    //!
+    // Read multiple bytes from an SDIO card using IO_RW_EXTENDED (CMD53)
+    // Inline implementation
+    //
+    // This function performs read operation using CMD53 in byte mode.
+    // For block mode, see sdmmc_io_read_blocks.
+    //
+    // @param card  pointer to card information structure previously initialized
+    //              using sdmmc_card_init
+    // @param function  IO function number
+    // @param addr  byte address within IO function where reading starts
+    // @param dst  buffer which receives the data read from card
+    // @param size  number of bytes to read; if size is zero - used dst.size()
+    // @return
+    //      - ESP_OK on success
+    //      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
+    //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
+    //    esp_err_t sdmmc_io_read_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
+//    esp_err_t inline
+//    MMC::IO::Read::bytes(uint32_t function, uint32_t addr, void *dst, size_t size) {
+//	return sdmmc_io_read_bytes(iohandler.card.self, function, addr, dst, size);};
     esp_err_t inline
-    MMC::IO::Read::bytes(uint32_t function, uint32_t addr, void *dst, size_t size) {
-	return sdmmc_io_read_bytes(iohandler.card.self, function, addr, dst, size);};
+    MMC::IO::Read::bytes(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size) {
+	return (size > dst.size()) ? ESP_ERR_INVALID_SIZE:
+		sdmmc_io_read_bytes(iohandler.card.self, function, addr, dst.data(), (size == 0)? dst.size(): size);};
 
-    /// Read blocks of data from an SDIO card using IO_RW_EXTENDED (CMD53)
-    /// This function performs read operation using CMD53 in block mode. For byte mode, see sdmmc_io_read_bytes.
+    //!
+    // Read blocks of data from an SDIO card using IO_RW_EXTENDED (CMD53)
+    // Inline implementation
+    //
+    // This function performs read operation using CMD53 in block mode.
+    // For byte mode, see sdmmc_io_read_bytes.
+    //
+    // @param card  pointer to card information structure previously initialized
+    //              using sdmmc_card_init
+    // @param function  IO function number
+    // @param addr  byte address within IO function where writing starts
+    // @param dst  buffer which receives the data read from card
+    // @param size  number of bytes to read, must be divisible by the card block
+    //              size; if size is zero - used dst.size()
+    // @return
+    //      - ESP_OK on success
+    //      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
+    //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_read_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, void *dst, size_t size);
     esp_err_t inline
     MMC::IO::Read::blocks(uint32_t function, uint32_t addr, void *dst, size_t size) {
 	return sdmmc_io_read_blocks(iohandler.card.self, function, addr, dst, size);};
+    esp_err_t inline
+    MMC::IO::Read::blocks(uint32_t function, uint32_t addr, std::vector<uint8_t> &dst, size_t size) {
+	return (size > dst.size())? ESP_ERR_INVALID_SIZE:
+		sdmmc_io_read_blocks(iohandler.card.self, function, addr, dst.data(), (size == 0)? dst.size(): size);};
 
 
     //--[ class IO::Write inlines ]------------------------------------------------------------------------------------
@@ -1171,25 +1262,82 @@ private:
 	iohandler(*io)
     {};
 
-    /// Write one byte to an SDIO card using IO_RW_DIRECT (CMD52)
+    //!
+    // Write one byte to an SDIO card using IO_RW_DIRECT (CMD52)
+    // Inline implementation
+    //
+    // @param card  pointer to card information structure previously initialized
+    //              using sdmmc_card_init
+    // @param function  IO function number
+    // @param reg  byte address within IO function
+    // @param in_byte  value to be written
+    // @param[out] out_byte  if not NULL, receives new byte value read
+    //                       from the card (read-after-write).
+    // @return
+    //      - ESP_OK on success
+    //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_write_byte(sdmmc_card_t *card, uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte);
+//    esp_err_t inline
+//    MMC::IO::Write::byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte) {
+//	return sdmmc_io_write_byte(iohandler.card.self, function, reg, in_byte, out_byte);};
     esp_err_t inline
-    MMC::IO::Write::byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t *out_byte) {
-	return sdmmc_io_write_byte(iohandler.card.self, function, reg, in_byte, out_byte);};
+    MMC::IO::Write::byte(uint32_t function, uint32_t reg, uint8_t in_byte) {
+	return sdmmc_io_write_byte(iohandler.card.self, function, reg, in_byte, nullptr);};
+    esp_err_t inline
+    MMC::IO::Write::byte(uint32_t function, uint32_t reg, uint8_t in_byte, uint8_t &out_byte) {
+	return sdmmc_io_write_byte(iohandler.card.self, function, reg, in_byte, &out_byte);};
 
-    /// Write multiple bytes to an SDIO card using IO_RW_EXTENDED (CMD53)
-    /// This function performs write operation using CMD53 in byte mode. For block mode, see sdmmc_io_write_blocks.
+    //!
+    // Write multiple bytes to an SDIO card using IO_RW_EXTENDED (CMD53)
+    // Inline implementation
+    //
+    // This function performs write operation using CMD53 in byte mode.
+    // For block mode, see sdmmc_io_write_blocks.
+    //
+    // @param card  pointer to card information structure previously initialized
+    //              using sdmmc_card_init
+    // @param function  IO function number
+    // @param addr  byte address within IO function where writing starts
+    // @param src  data to be written
+    // @param size  number of bytes to write; if size is zero - used dst.size()
+    // @return
+    //      - ESP_OK on success
+    //      - ESP_ERR_INVALID_SIZE if size exceeds 512 bytes or greater then dst.size()
+    //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_write_bytes(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
+//    esp_err_t inline
+//    MMC::IO::Write::bytes(uint32_t function, uint32_t addr, const void *src, size_t size)	{
+//	return sdmmc_io_write_bytes(iohandler.card.self, function, addr, src, size);};
     esp_err_t inline
-    MMC::IO::Write::bytes(uint32_t function, uint32_t addr, const void *src, size_t size)	{
-	return sdmmc_io_write_bytes(iohandler.card.self, function, addr, src, size);};
+    MMC::IO::Write::bytes(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size)	{
+	return (size > src.size())? ESP_ERR_INVALID_SIZE:
+		sdmmc_io_write_bytes(iohandler.card.self, function, addr, src.data(), (size == 0)? src.size(): size);};
 
-    /// Write blocks of data to an SDIO card using IO_RW_EXTENDED (CMD53)
-    /// This function performs write operation using CMD53 in block mode. For byte mode, see sdmmc_io_write_bytes.
+    //!
+    // Write blocks of data to an SDIO card using IO_RW_EXTENDED (CMD53)
+    //
+    // This function performs write operation using CMD53 in block mode.
+    // For byte mode, see sdmmc_io_write_bytes.
+    //
+    // @param card  pointer to card information structure previously initialized
+    //              using sdmmc_card_init
+    // @param function  IO function number
+    // @param addr  byte address within IO function where writing starts
+    // @param src  data to be written
+    // @param size  number of bytes to read, must be divisible by the card block
+    //              size; if size is zero - used dst.size().
+    // @return
+    //      - ESP_OK on success
+    //      - ESP_ERR_INVALID_SIZE if size is not divisible by 512 bytes or greater then dst.size()
+    //      - One of the error codes from SDMMC host controller
     //    esp_err_t sdmmc_io_write_blocks(sdmmc_card_t *card, uint32_t function, uint32_t addr, const void *src, size_t size);
+//    esp_err_t inline
+//    MMC::IO::Write::blocks(uint32_t function, uint32_t addr, const void *src, size_t size) {
+//	return sdmmc_io_write_blocks(iohandler.card.self, function, addr, src, size);};
     esp_err_t inline
-    MMC::IO::Write::blocks(uint32_t function, uint32_t addr, const void *src, size_t size) {
-	return sdmmc_io_write_blocks(iohandler.card.self, function, addr, src, size);};
+    MMC::IO::Write::blocks(uint32_t function, uint32_t addr, const std::vector<uint8_t> &src, size_t size) {
+	return (size > src.size())? ESP_ERR_INVALID_SIZE:
+		sdmmc_io_write_blocks(iohandler.card.self, function, addr, src.data(), (size == 0)? src.size(): size);};
 
 
 }; //--[ namespace SD ]------------------------------------------------------------------------------------------------

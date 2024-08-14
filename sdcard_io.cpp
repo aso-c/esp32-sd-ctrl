@@ -3,8 +3,8 @@
  * Implementation file
  * 	File: sdcard_ctrl.cpp
  *	Author:  aso (Solomatov A.A.)
- *	Created: 14.07.2022
- *	Version: 0.6
+ *	Created: 14.07.2022 - 12.08.2024
+ *	Version: 0.8
  */
 
 //#define __PURE_C__
@@ -30,17 +30,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <regex>
-#ifdef __PURE_C__
-#include <dirent.h>
-#else
-#if __cplusplus < 201703L
 #include <fcntl.h>
 #include <dirent.h>
-#else	//  __cplusplus < 201703L
-#include <fcntl.h>
-#include <dirent.h>
-#endif // __cplusplus < 201703L
-#endif // ifdef __PURE_C__
 
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
@@ -542,13 +533,13 @@ namespace SD //-----------------------------------------------------------------
     //    esp_err_t unmount(const char *base_path, sdmmc_card_t *card);	// Unmount mounted SD-card "card", mounted onto mountpath
 
 
-//--[ class SD::MMC::Card ]--------------------------------------------------------------------------------------------
+//--[ class SD::Card ]-------------------------------------------------------------------------------------------------
 
 #define CMD_TAG_PRFX "SD/MMC Card::"
 
 
     /// Print the card info
-    void MMC::Card::print_info(FILE* outfile)
+    void Card::print_info(FILE* outfile)
     {
 	sdmmc_card_print_info(outfile, self);
 	fprintf(outfile, "Sector: %d Bytes\n\n", self->csd.sector_size);
@@ -556,28 +547,31 @@ namespace SD //-----------------------------------------------------------------
 
 
     /// print the SD-card info (wrapper for the external caller)
-    esp_err_t MMC::Card::info()
+    esp_err_t Card::info()
     {
 	print_info(stdout);
 	return ESP_OK;
     }; /* SD::MMC::Card::info */
 
-    const char* MMC::Card::TAG = "SD/MMC Card";
+    const char* Card::TAG = "SD/MMC Card";
 
     /// Print CIS info to outfile -
     /// High level procedure
-    esp_err_t MMC::Card::cis_info(FILE* outfile)
+    esp_err_t Card::cis_info(FILE* outfile)
     {
 	    size_t cisize = 0;
+//	    size_t bsize = 16;
 	    size_t bsize = 16;
-	    uint8_t* outbuf = (uint8_t*)malloc(bsize);
+//	    uint8_t* outbuf = (uint8_t*)malloc(bsize);
+	    std::vector<uint8_t> outbuf(bsize);
 	    esp_err_t err;
 
-	err = io.get_cis_data(outbuf, bsize, &cisize); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
+//	err = io.cis.data(outbuf, bsize, &cisize); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
+	err = io.cis.data(outbuf, cisize);
 	if (err != ESP_OK)
 	{
 	    ESP_LOGE("sdcard info command", "Error %i in get get CIS data first time: %s", err, esp_err_to_name(err));
-	    free(outbuf);
+//	    free(outbuf);
 	    switch (err)
 	    {
 	    case ESP_ERR_INVALID_RESPONSE:
@@ -589,8 +583,9 @@ namespace SD //-----------------------------------------------------------------
 		ESP_LOGD("sdcard info command", "Error %i in get get CIS data first time: %s", err, esp_err_to_name(err));
 		ESP_LOGD("sdcard cis info command", "The new size of the CIS data buffer is: %i", bsize);
 		cisize = 0;
-		outbuf = (uint8_t*)malloc(bsize);
-		err = io.get_cis_data(outbuf, bsize, &cisize); // @suppress("Field cannot be resolved") // @suppress("Method cannot be resolved")
+		outbuf.resize(bsize);
+//		err = io.cis.data(outbuf, bsize, &cisize); // @suppress("Field cannot be resolved") // @suppress("Method cannot be resolved")
+		err = io.cis.data(outbuf, cisize);
 	    }; /* switch err */
 	}; /* if err != ESP_ERR_INVALID_SIZE */
 
@@ -601,13 +596,13 @@ namespace SD //-----------------------------------------------------------------
 	    return err;
 	}; /* if err != ESP_OK */
 
-	err = io.print_cis_info(outbuf, bsize, stdout); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
-	free(outbuf);
+	err = io.cis.info(outbuf, stdout); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
+//	free(outbuf);
 	if (err != ESP_OK)
 	    ESP_LOGD("sdcard info command", "Error %i in the print of the CIS info: %s", err, esp_err_to_name(err));
 
 	return err;
-    }; /* SD::MMC::Card::cis_info */
+    }; /* SD::Card::cis_info */
 
 
 
