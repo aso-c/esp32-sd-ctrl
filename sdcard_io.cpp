@@ -196,16 +196,11 @@ namespace SD //-----------------------------------------------------------------
     {
 	cfg.slot = slotno;
 	_slot = extern_slot;
-//	return sdmmc_host_init_slot(slot, slot_config);
 	return init();
     }; /* SD::MMC::Host::init(Slot::number, const Slot&) */
 
     esp_err_t MMC::Host::init(Slot::number slotno, Slot&& extern_slot)
     {
-	//cfg.slot = slotno;
-	//slot = slot_config;
-//	return sdmmc_host_init_slot(slot, &slot_config);
-//	return init();
 	return init(slotno, extern_slot);
     }; /* SD::MMC::Host::init(Slot::number, Slot&&) */
 
@@ -425,7 +420,6 @@ namespace SD //-----------------------------------------------------------------
     }; /* SD::MMC::Slot::operator =(const sdmmc_slot_config_t&) */
 
 
-//    sdmmc_slot_config_t& operator =(sdmmc_slot_config_t&&) noexcept;
     MMC::Slot& MMC::Slot::operator =(sdmmc_slot_config_t&& config) noexcept
     {
 	*this = config;
@@ -444,15 +438,13 @@ namespace SD //-----------------------------------------------------------------
 	mnt.format_if_mount_failed = mnt_cfg.format_if_mount_failed;
 	mnt.max_files = mnt_cfg.max_files;
 	mnt.allocation_unit_size = mnt_cfg.allocation_unit_size;
-	//ESP_LOGI(TAG, "Initializing SD card");
     }; /* SD::MMC::Device::Device(bus::width, Host::Pullup, esp_vfs_fat_sdmmc_mount_config_t&) */
 
-    MMC::Device::Device(Card::format/*::mntfail*/ autofmt, int max_files, size_t size, bool disk_st_chk,
+    MMC::Device::Device(Card::format autofmt, int max_files, size_t size, bool disk_st_chk,
 		    bus::width width, Host::Pullup pull):
 		_host(width, pull)
     {
 	/*selective_log_level_set("Device::valid_path", ESP_LOG_DEBUG);*/	/* for debug purposes */
-	//ESP_LOGI(TAG, "Initializing SD card");
 	mnt.format_if_mount_failed = (autofmt == Card::format::yes)? true: false;
         mnt.max_files = max_files;
         mnt.allocation_unit_size = size;
@@ -472,7 +464,6 @@ namespace SD //-----------------------------------------------------------------
 	    ESP_LOGE(TAG, "%s: card already mounted at the %s, refuse to mount again", __func__, mountpath_c());
 	    return ESP_ERR_NOT_SUPPORTED;
 	}; /* if mounted() */
-//	ESP_LOGW(__PRETTY_FUNCTION__, "SD-Card is not mounted");
 
 	mountpath(std::move(mountpoint));
 	card  = &excard;
@@ -511,9 +502,6 @@ namespace SD //-----------------------------------------------------------------
     // Unmount SD-card, that mounted onto "mountpath"
     esp_err_t MMC::Device::unmount()
     {
-
-//	    esp_err_t ret;
-
 	// if card already mounted - exit with error
 	if (!mounted())
 	{
@@ -574,7 +562,6 @@ namespace SD //-----------------------------------------------------------------
 	    case ESP_ERR_INVALID_SIZE:	// CIS_CODE_END found, but buffer_size is less than required size, which is stored in the inout_cis_size then.
 	    case ESP_ERR_NOT_FOUND:		// if the CIS_CODE_END not found. Increase input value of inout_cis_size or set it to 0,
 		bsize = cisize;
-//	 	cout << aso::format("The new size of the CIS data buffer is: %i") % bsize << endl;
 		ESP_LOGD("sdcard info command", "Error %i in get get CIS data first time: %s", err, esp_err_to_name(err));
 		ESP_LOGD("sdcard cis info command", "The new size of the CIS data buffer is: %i", bsize);
 		cisize = 0;
@@ -590,7 +577,7 @@ namespace SD //-----------------------------------------------------------------
 	    return err;
 	}; /* if err != ESP_OK */
 
-	err = io.cis.info(outbuf, stdout); // @suppress("Method cannot be resolved") // @suppress("Field cannot be resolved")
+	err = io.cis.info(outbuf, stdout);
 	if (err != ESP_OK)
 	    ESP_LOGD("sdcard info command", "Error %i in the print of the CIS info: %s", err, esp_err_to_name(err));
 
@@ -598,9 +585,7 @@ namespace SD //-----------------------------------------------------------------
     }; /* SD::Card::cis_info */
 
 
-
 //--[ class IO ]--------------------------------------------------------------------------------------------------
-
 
 
 }; /* namespace SD */  //----------------------------------------------------------------------------------------------
