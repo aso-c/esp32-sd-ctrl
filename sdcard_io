@@ -39,12 +39,18 @@ namespace SD //-----------------------------------------------------------------
 
 	struct Slot
 	{
+	    enum class number {
+			_0 = SDMMC_HOST_SLOT_0, null=_0,
+			_1 = SDMMC_HOST_SLOT_1, one=_1,
+			out_of_range = -1
+	    }; /* enum class number */
+
 	    Slot();	// Default config - Slot configured to Slot_1
 	    Slot(const Slot&);		// really copy constructor
 	    Slot(const sdmmc_slot_config_t&);	// copy constructor
-	    Slot(sdmmc_slot_config_t&&);	// move constructor
-	    enum number {_0 = SDMMC_HOST_SLOT_0, null=_0, _1 = SDMMC_HOST_SLOT_1, one=_1, out_of_range = -1};
-	    Slot(number);	// initializing Slot cfg by its number
+//	    Slot(sdmmc_slot_config_t&&);	// move constructor
+//	    enum number {_0 = SDMMC_HOST_SLOT_0, null=_0, _1 = SDMMC_HOST_SLOT_1, one=_1, out_of_range = -1};
+//	    Slot(number);	// initializing Slot cfg by its number
 
 	    // Set or clear SD::MMC internal pullup bit
 	    void internal_pullup(bool);
@@ -69,6 +75,7 @@ namespace SD //-----------------------------------------------------------------
 
     }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
 
+    class Card;
 
     struct Host
     {
@@ -92,15 +99,16 @@ namespace SD //-----------------------------------------------------------------
 	}; /* SD::Host::Freq */
 
 	// "copy" constructor
-	Host(const sdmmc_host_t& xcfg): io(this), cfg(xcfg) {};
-	// "move" constructor
-	Host(sdmmc_host_t&& tcfg): io(this), cfg(tcfg) {};
+//	Host(const sdmmc_host_t& xcfg): io(this), cfg(xcfg) {};
+	Host(const sdmmc_host_t& xcfg /*= sdmmc_host_t(SDMMC_HOST_DEFAULT())*/, MMC::Slot::number num = MMC::Slot::number::_0): /*io(this),*/ cfg(xcfg)/*, _slot(num)*/ {};
+//	// "move" constructor
+//	Host(sdmmc_host_t&& tcfg): io(this), cfg(tcfg) {};
 	// copy constructor
 	Host(const Host& host): Host(host.cfg) {};
-	// move constructor
-	Host(Host&& host): Host(host.cfg) {};
+//	// move constructor
+//	Host(Host&& host): Host(host.cfg) {};
 
-	virtual ~Host() {};
+	virtual ~Host() = default /*{}*/;
 
 	//!
 	// @brief Initialize SDMMC/SDSPI host peripheral.
@@ -177,6 +185,74 @@ namespace SD //-----------------------------------------------------------------
 
 
 	//!
+	// @brief Convenience function to get FAT filesystem on SD card registered in VFS
+	//
+	// This is an all-in-one function which does the following:
+	// - initializes SDMMC driver or SPI driver with configuration in host_config
+	// - initializes SD card with configuration in slot_config
+	// - mounts FAT partition on SD card using FATFS library, with configuration in mount_config
+	// - registers FATFS library with VFS, with prefix given by base_prefix variable
+	//
+	// This function is intended to make example code more compact.
+	// For real world applications, developers should implement the logic of
+	// probing SD card, locating and mounting partition, and registering FATFS in VFS,
+	// with proper error checking and handling of exceptional conditions.
+	//
+	// @note Use this API to mount a card through SDSPI is deprecated. Please call
+	//       `esp_vfs_fat_sdspi_mount()` instead for that case.
+	//
+	// @param base_path     path where partition should be registered (e.g. "/sdcard")
+	// @param host_config   Pointer to structure describing SDMMC host. When using
+	//                      SDMMC peripheral, this structure can be initialized using
+	//                      SDMMC_HOST_DEFAULT() macro. When using SPI peripheral,
+	//                      this structure can be initialized using SDSPI_HOST_DEFAULT()
+	//                      macro.
+	// @param slot_config   Pointer to structure with slot configuration.
+	//                      For SDMMC peripheral, pass a pointer to sdmmc_slot_config_t
+	//                      structure initialized using SDMMC_SLOT_CONFIG_DEFAULT.
+	// @param mount_config  pointer to structure with extra parameters for mounting FATFS
+	// @param[out] out_card  if not NULL, pointer to the card information structure will be returned via this argument
+	// @return
+	//      - ESP_OK on success
+	//      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount was already called
+	//      - ESP_ERR_NO_MEM if memory can not be allocated
+	//      - ESP_FAIL if partition can not be mounted
+	//      - other error codes from SDMMC or SPI drivers, SDMMC protocol, or FATFS drivers
+	//
+//	esp_err_t esp_vfs_fat_sdmmc_mount(const char* base_path,
+//	    const sdmmc_host_t* host_config,
+//	    const void* slot_config,
+//	    const esp_vfs_fat_mount_config_t* mount_config,
+//	    sdmmc_card_t** out_card);
+	esp_err_t virtual mount(const std::string& path, esp_vfs_fat_mount_config_t& mount_config, Card& card) = 0;
+
+	//!
+	// @brief Unmount FAT filesystem and release resources acquired using esp_vfs_fat_sdmmc_mount
+	//
+	// @deprecated Use `esp_vfs_fat_sdcard_unmount()` instead.
+	//
+	// @return
+	//      - ESP_OK on success
+	//      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount hasn't been called
+	//
+//	esp_err_t esp_vfs_fat_sdmmc_unmount(void);
+	[[deprecated("Use \"esp_vfs_fat_sdcard_unmount()\" instead")]]
+	 esp_err_t unmount() { return esp_vfs_fat_sdmmc_unmount(); };
+
+	//!
+	// @brief Unmount an SD card from the FAT filesystem and release resources acquired using
+	//        `esp_vfs_fat_sdmmc_mount()` or `esp_vfs_fat_sdspi_mount()`
+	//
+	// @return
+	//      - ESP_OK on success
+	//      - ESP_ERR_INVALID_ARG if the card argument is unregistered
+	//      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount hasn't been called
+	//
+//	esp_err_t esp_vfs_fat_sdcard_unmount(const char* base_path, sdmmc_card_t *card);
+	esp_err_t unmount(const std::string& path, Card& card) /*{ return esp_vfs_fat_sdcard_unmount(path.c_str(), card.self); }*/;
+
+
+	//!
 	// @brief Disable SDMMC host and release allocated resources
 	//
 	// @note This function is not thread safe
@@ -188,12 +264,12 @@ namespace SD //-----------------------------------------------------------------
 
 	struct IO
 	{
-	    IO(Host* parent): interrupt(this), host(*parent) {};
-
+//	    IO(Host* parent): interrupt(this), host(*parent) {};
+//
 	    struct INT
 	    {
-		INT(IO* parent): io(*parent) {};
-
+//		INT(IO* parent): io(*parent) {};
+//
 		//!
 		// @brief Enable IO interrupts
 		//
@@ -213,27 +289,36 @@ namespace SD //-----------------------------------------------------------------
 		//  - ESP_OK on success (interrupt received)
 		//  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 		esp_err_t wait(TickType_t timeout_ticks) { return io.host.io_int_wait(timeout_ticks);};
+
+	    protected:
+		friend class IO;
+		INT(IO* parent): io(*parent) {};
 	    private:
 		IO& io;
 	    }; /* SD::Host::IO::INT */
 
 	    INT interrupt;
 
+	protected:
+	    friend class Host;
+	    IO(Host* parent): interrupt(this), host(*parent) {};
 	private:
 	    Host& host;
-
 
 	}; /* struct SD::Host::IO */
 
 	IO io = this;
 
-    private:
+//    private:
+    protected:
 
 	// Use settings defined above to initialize SD card and mount FAT filesystem.
 	// Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
 	// Please check its source code and implement error recovery when developing
 	// production applications.
 	sdmmc_host_t cfg;
+
+    private:
 
 	//!
 	// @brief Enable IO interrupts
@@ -305,39 +390,82 @@ namespace SD //-----------------------------------------------------------------
 	    Host(Slot::number, bus::width = bus::width_def, Pullup = nopullup);
 	    // Custom slot configuration in temporary obj for desired slot number
 //	    Host(Slot::number, sdmmc_slot_config_t&& slot_config);	// in temporary object
-	    Host(Slot::number, Slot&&, bus::width = bus::width_def, Pullup = nopullup);	// in temporary object
+	//    Host(Slot::number, Slot&&, bus::width = bus::width_def, Pullup = nopullup);	// in temporary object
 //	    Host(Slot::number, const sdmmc_slot_config_t& slot_config);	// in lvalue object
 	    Host(Slot::number, const Slot&, bus::width = bus::width_def, Pullup = nopullup);	// in lvalue object
 	    // Copy constructors
 	    Host(const Host&, bus::width = bus::width_def, Pullup = nopullup);		// for lvalue object (defined variable)
 	    // for lvalue object (defined variable)
 	    Host(const sdmmc_host_t&, bus::width = bus::width_def, Pullup = nopullup);
-	    // for rvalue oblect (e.g. temporary object)
-	    Host(sdmmc_host_t&&, bus::width = bus::width_def, Pullup = nopullup) noexcept;
+//	    // for rvalue oblect (e.g. temporary object)
+//	    Host(sdmmc_host_t&&, bus::width = bus::width_def, Pullup = nopullup) noexcept;
 
 	    // for lvalue object (defined variable)
 	    Host(const sdmmc_host_t& ehost, const sdmmc_slot_config_t& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup):
 		Host(ehost, busw, pullst) {_slot = eslot;};
-	    // for rvalue oblect (e.g. temporary object)
-	    Host(sdmmc_host_t&& ehost, sdmmc_slot_config_t&& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup) noexcept:
-		    Host(ehost, busw, pullst) {_slot = eslot;};
+//	    // for rvalue oblect (e.g. temporary object)
+//	    Host(sdmmc_host_t&& ehost, sdmmc_slot_config_t&& eslot, bus::width busw = bus::width_def, Pullup pullst = nopullup) noexcept:
+//		    Host(ehost, busw, pullst) {_slot = eslot;};
+	    ~Host() override = default /*{}*/;
 
 	    Slot& slot() { return _slot;};
 
-	    operator sdmmc_host_t&() {return cfg;};
-	    operator sdmmc_host_t*() {return &cfg;};
+	    operator sdmmc_host_t&();
+	    operator sdmmc_host_t*();
 
 	    Host& operator =(const Host&);
 	    Host& operator =(const sdmmc_host_t&);
-	    Host& operator =(sdmmc_host_t&& host) noexcept { return operator =(host); };
+//	    Host& operator =(sdmmc_host_t&& host) noexcept { return operator =(host); };
 
 	    void set_pullup(Pullup pullup_st) { _slot.internal_pullup((pullup_st == pullup)? true: false);}
 	    bool pullup_state() {return _slot.pullup_state();};
 
 	    /// @warning use сarefully! may be incorrect behavior!
-	    int slot_no() {return cfg.slot;}
-	    int slot_no(Slot::number num) {int old = cfg.slot; cfg.slot = num; return old;}
+	    int slot_no() /*{return cfg.slot;}*/;
+	    int slot_no(Slot::number num) /*{int old = cfg.slot; cfg.slot = static_cast<int>(num); return old;}*/;
 
+
+	    //!
+	    // @brief Convenience function to get FAT filesystem on SD card registered in VFS
+	    //
+	    // This is an all-in-one function which does the following:
+	    // - initializes SDMMC driver or SPI driver with configuration in host_config
+	    // - initializes SD card with configuration in slot_config
+	    // - mounts FAT partition on SD card using FATFS library, with configuration in mount_config
+	    // - registers FATFS library with VFS, with prefix given by base_prefix variable
+	    //
+	    // This function is intended to make example code more compact.
+	    // For real world applications, developers should implement the logic of
+	    // probing SD card, locating and mounting partition, and registering FATFS in VFS,
+	    // with proper error checking and handling of exceptional conditions.
+	    //
+	    // @note Use this API to mount a card through SDSPI is deprecated. Please call
+	    //       `esp_vfs_fat_sdspi_mount()` instead for that case.
+	    //
+	    // @param base_path     path where partition should be registered (e.g. "/sdcard")
+	    // @param host_config   Pointer to structure describing SDMMC host. When using
+	    //                      SDMMC peripheral, this structure can be initialized using
+	    //                      SDMMC_HOST_DEFAULT() macro. When using SPI peripheral,
+	    //                      this structure can be initialized using SDSPI_HOST_DEFAULT()
+	    //                      macro.
+	    // @param slot_config   Pointer to structure with slot configuration.
+	    //                      For SDMMC peripheral, pass a pointer to sdmmc_slot_config_t
+	    //                      structure initialized using SDMMC_SLOT_CONFIG_DEFAULT.
+	    // @param mount_config  pointer to structure with extra parameters for mounting FATFS
+	    // @param[out] out_card  if not NULL, pointer to the card information structure will be returned via this argument
+	    // @return
+	    //      - ESP_OK on success
+	    //      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount was already called
+	    //      - ESP_ERR_NO_MEM if memory can not be allocated
+	    //      - ESP_FAIL if partition can not be mounted
+	    //      - other error codes from SDMMC or SPI drivers, SDMMC protocol, or FATFS drivers
+	    //
+//	esp_err_t esp_vfs_fat_sdmmc_mount(const char* base_path,
+//	    const sdmmc_host_t* host_config,
+//	    const void* slot_config,
+//	    const esp_vfs_fat_mount_config_t* mount_config,
+//	    sdmmc_card_t** out_card);
+	    esp_err_t mount(const std::string& path, esp_vfs_fat_mount_config_t& mount_config, Card& card) override;
 
 	    //!
 	    // @brief Initialize SDMMC host peripheral
@@ -387,7 +515,7 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_INVALID_ARG if slot number or width is not valid
 //	    esp_err_t (*set_bus_width)(int slot, size_t width);    /*!< host function to set bus width */
-	    esp_err_t bus_width(bus::width width) { return cfg.set_bus_width(cfg.slot, width); };
+	    esp_err_t bus_width(bus::width width) { return cfg.set_bus_width/*sdmmc_host_set_bus_width*/(cfg.slot, width); };
 
 	    //!
 	    // @brief Get bus width configured in ``sdmmc_host_init_slot`` to be used for data transfer
@@ -448,8 +576,8 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
 	    //      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
 //	    esp_err_t (*do_transaction)(int slot, sdmmc_command_t* cmdinfo);    /*!< host function to do a transaction */
-	    esp_err_t do_transaction(sdmmc_command_t *cmdinfo) { return cfg.do_transaction(cfg.slot, cmdinfo); };
-	    esp_err_t do_transaction(sdmmc_command_t& cmdinfo) { return cfg.do_transaction(cfg.slot, &cmdinfo); };
+	    esp_err_t do_transaction(sdmmc_command_t *cmdinfo) override { return cfg.do_transaction(cfg.slot, cmdinfo); };
+	    esp_err_t do_transaction(sdmmc_command_t& cmdinfo) override { return cfg.do_transaction(cfg.slot, &cmdinfo); };
 
 	    //!
 	    // @brief Disable SDMMC host and release allocated resources
@@ -463,7 +591,7 @@ namespace SD //-----------------------------------------------------------------
 //		esp_err_t (*deinit)(void);  /*!< host function to deinitialize the driver */
 //		esp_err_t (*deinit_p)(int slot);  /*!< host function to deinitialize the driver, called with the `slot` */
 //	    };
-	    esp_err_t deinit(void) { return sdmmc_host_deinit();};
+	    esp_err_t deinit(void) override { return sdmmc_host_deinit();};
 
 	private:
 
@@ -471,7 +599,7 @@ namespace SD //-----------------------------------------------------------------
 	    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
 	    // Please check its source code and implement error recovery when developing
 	    // production applications.
-	    sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
+//	    sdmmc_host_t cfg /*= SDMMC_HOST_DEFAULT()*/; // @suppress("Invalid arguments")
 
 	    Slot _slot;
 
@@ -496,7 +624,7 @@ namespace SD //-----------------------------------------------------------------
 	    //  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 	    //        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
 //	    esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	    esp_err_t io_int_wait(TickType_t timeout_ticks) { return cfg.io_int_wait(cfg.slot, timeout_ticks);};
+	    esp_err_t io_int_wait(TickType_t timeout_ticks) override { return cfg.io_int_wait(cfg.slot, timeout_ticks);};
 	}; /* struct SD::MMC::Host */
 
 
@@ -776,20 +904,9 @@ namespace SD //-----------------------------------------------------------------
 	// @return
 	//      - ESP_OK on success
 	//      - One of the error codes from SDMMC host controller
-
-//	esp_err_t sdmmc_card_init(const sdmmc_host_t *host, sdmmc_card_t *out_card);
 	esp_err_t init(const sdmmc_host_t *host) { return sdmmc_card_init(host, self);};
 	esp_err_t init(const sdmmc_host_t& host) { return sdmmc_card_init(&host, self);};
 	esp_err_t init(const MMC::Host& host) { return sdmmc_card_init(&host.cfg, self);};
-
-//	/// for a class Device: request formatting SD-card if mount failed
-//	struct format {
-//	    /// format if mount failed?
-//	    enum mntfail {
-//		no = 0,	// no format
-//		yes = 1	// format, if card mounting - fail
-//	    }; /* enum mntfail */
-//	}; /* struct SD::Card::format */
 
 	/// for a class Device: request formatting SD-card if mount failed:
 	enum class format {
@@ -976,7 +1093,7 @@ namespace SD //-----------------------------------------------------------------
 						.max_files = 5,
 						.allocation_unit_size = 16*1024,
 						.disk_status_check_enable = false});
-	    Device(SD::Card::format/*::mntfail*/ autofmt,
+	    Device(SD::Card::format autofmt,
 		    int max_files = 5, size_t unit_size = 16 * 1024, bool disk_st_chk = false,
 		    bus::width = bus::width_def, Host::Pullup = Host::nopullup);
 
@@ -1010,7 +1127,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @note  use сarefully! may be incorrect behavior!
 	    // @param num  new slot number
 	    // @return    prev slot number
-	    int slot_no(int num) {return _host.slot_no((num == 0)? Slot::_0: ((num == 1)? Slot::_1: Slot::out_of_range));}
+	    int slot_no(int num) {return _host.slot_no((num == 0)? Slot::number::_0: ((num == 1)? Slot::number::_1: Slot::number::out_of_range));}
 
 	    Card* card = nullptr;
 
@@ -1021,11 +1138,40 @@ namespace SD //-----------------------------------------------------------------
 	    esp_vfs_fat_sdmmc_mount_config_t mnt;
 	    esp_err_t ret = ESP_OK;	// Error status
 
-	    void selective_log_level_set(const char tag[], esp_log_level_t level) {esp_log_level_set(tag, level);/* for debug purposes */};
+//	    void selective_log_level_set(const char tag[], esp_log_level_t level) {esp_log_level_set(tag, level);/* for debug purposes */};
 
-	}; /* struct Device */
+	}; /* struct SD::MMC::Device */
 
     }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
+
+
+    //--[ class SD::Host ]---------------------------------------------------------------------------------------------
+
+    //
+    // @brief Unmount an SD card from the FAT filesystem and release resources acquired using
+    //        `esp_vfs_fat_sdmmc_mount()` or `esp_vfs_fat_sdspi_mount()`
+    //
+    // @return
+    //      - ESP_OK on success
+    //      - ESP_ERR_INVALID_ARG if the card argument is unregistered
+    //      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount hasn't been called
+    //
+//	esp_err_t esp_vfs_fat_sdcard_unmount(const char* base_path, sdmmc_card_t *card);
+    inline
+    esp_err_t SD::Host::unmount(const std::string& path, Card& card)
+    {
+	return esp_vfs_fat_sdcard_unmount(path.c_str(), card.self);
+    }; /* SD::Host::unmount() */
+
+
+    //--[ class SD::MMC::Host ]----------------------------------------------------------------------------------------
+
+    //
+    // @brief Convenience function to get FAT filesystem on SD card registered in VFS
+    //
+    inline esp_err_t MMC::Host::mount(const std::string& path, esp_vfs_fat_mount_config_t& mount_config, Card& card) {
+	return esp_vfs_fat_sdmmc_mount(path.c_str(), &cfg, &_slot, &mount_config, &card.self);
+    };
 
 
     //--[ class SD::Card ]---------------------------------------------------------------------------------------------
