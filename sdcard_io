@@ -1,10 +1,12 @@
 /*
  * SD-card input/output classes
  * Include file
- * 	File: sdcard_io
- *	Author:  aso (Solomatov A.A.)
- *	Created: 20.09.2022 - 14.09.2024
- *	Version: 0.9
+ * 	@file   sdcard_io
+ *	@author	Solomatov A.A. (aso)
+ *	@date	Created 20.09.2022
+ *		Updated 01.11.2024
+ *	@version 0.95
+ *
  */
 
 
@@ -82,7 +84,8 @@ namespace SD //-----------------------------------------------------------------
 	//      - ESP_OK on success
 	//	- ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
 	//	- ESP_ERR_NO_MEM if memory can not be allocated
-	esp_err_t virtual pure_init(void) = 0;
+	//TODO For remove
+//	esp_err_t virtual pure_init(void) = 0;
 
 	//!
 	// @brief Initialize given slot of SDMMC peripheral
@@ -191,8 +194,9 @@ namespace SD //-----------------------------------------------------------------
 	// @return
 	//      - ESP_OK on success
 	//      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount hasn't been called
-	[[deprecated("Use \"esp_vfs_fat_sdcard_unmount()\" instead")]]
-	 esp_err_t unmount() { return (err = esp_vfs_fat_sdmmc_unmount()); };
+	//TODO For remove
+//	[[deprecated("Use \"esp_vfs_fat_sdcard_unmount()\" instead")]]
+//	 esp_err_t unmount() { return (err = esp_vfs_fat_sdmmc_unmount()); };
 
 	//!
 	// @brief Unmount an SD card from the FAT filesystem and release resources acquired using
@@ -425,8 +429,9 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_OK on success
 	    //	- ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
 	    //	- ESP_ERR_NO_MEM if memory can not be allocated
-	    [[deprecated("Use the \"init()\" procedure or sdmmc_host_init_slot() instead")]]
-	    esp_err_t pure_init(void) override { return (err = sdmmc_host_init()); };
+	    //TODO For remove
+//	    [[deprecated("Use the \"init()\" procedure or sdmmc_host_init_slot() instead")]]
+//	    esp_err_t pure_init(void) override { return (err = sdmmc_host_init()); };
 
 	    //!
 	    // @brief Initialize given slot of SDMMC peripheral

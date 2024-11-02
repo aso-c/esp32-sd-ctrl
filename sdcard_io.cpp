@@ -1,10 +1,12 @@
 /*
  * SD-card control classes
  * Implementation file
- * 	File: sdcard_ctrl.cpp
- *	Author:  aso (Solomatov A.A.)
- *	Created: 14.07.2022 - 14.09.2024
- *	Version: 0.9
+ * 	@file: sdcard_ctrl.cpp
+ *	@author	Solomatov A.A. (aso)
+ *	@date	Created 14.07.2022
+ *		Updated 01.11.2024
+ *	@version: 0.95
+ *
  */
 
 //#define __PURE_C__
