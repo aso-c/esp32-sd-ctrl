@@ -1023,7 +1023,9 @@ namespace SD //-----------------------------------------------------------------
 						.format_if_mount_failed = false,
 						.max_files = 5,
 						.allocation_unit_size = 16*1024,
-						.disk_status_check_enable = false});
+						.disk_status_check_enable = false,
+						.use_one_fat = false
+					    } );
 	    Device(SD::Card::format autofmt,
 		    int max_files = 5, size_t unit_size = 16 * 1024, bool disk_st_chk = false,
 		    bus::width = bus::width::def, Host::pullup = Host::pullup::no);
