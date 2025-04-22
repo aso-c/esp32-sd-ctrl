@@ -25,6 +25,7 @@ namespace SD //-----------------------------------------------------------------
     namespace SPI
     {
 	struct Slot
+	// struct Descr  // Device configuration description
 	{
 	    Slot();	// Default config - Slot configured to Slot_1
 	    Slot(const Slot&);		// really copy constructor

@@ -4,8 +4,8 @@
  * 	@file   sdcard_io
  *	@author	Solomatov A.A. (aso)
  *	@date	Created 20.09.2022
- *		Updated 01.11.2024
- *	@version 0.95
+ *		Updated 22.04.2025
+ *	@version 0.96
  *
  */
 
@@ -24,48 +24,132 @@
 
 namespace SD //--------------------------------------------------------------------------------------------------------
 {
+#if 0
+    /// MMC abstraction namespace
     namespace MMC
     {
-	enum class slot
+
+	namespace slot
 	{
-	    number_0 = SDMMC_HOST_SLOT_0,
-	    number_1 = SDMMC_HOST_SLOT_1,
-	    one=number_1,
-	    null=number_0,
-	    out_of_range = -1
-	}; /* enum class SD::MMC::slot */
+	    /// slot number designation
+	    enum no: int8_t
+	    {
+		number_0 = SDMMC_HOST_SLOT_0,
+		number_1 = SDMMC_HOST_SLOT_1,
+		one=number_1,
+		null=number_0,
+		out_of_range = -1
+	    }; /* enum class SD::MMC::slot */
+
+	    /// slot flags
+	    enum flags: uint8_t
+	    {
+		none,
+		pullup	= SDMMC_SLOT_FLAG_INTERNAL_PULLUP,
+		wp_high	= SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH,
+		uhs1	= SDMMC_SLOT_FLAG_UHS1,
+	    }; /* enum SD::MMC::slot::flags */
+	}; /* namespace SD::MMC::slot */
+
+	/// pullup-state designation
+	enum class pullup: uint8_t {
+	    no,
+	    yes = slot::pullup
+	}; /* enum class SD::MMC::Host::pullup*/
+
+	/// write-protect bit encoding
+	namespace wp
+	{
+	    enum class active: int8_t
+	    {
+		low,
+		high = slot::wp_high
+	    }; /* enum class SD::MMC::wp::active */
+	}; /* namespace SD::MMC::wp */
+
+	/// write speed mode - UHS-1 or not
+	enum class uhs: uint8_t {
+	    no,
+	    mode1 = slot::uhs1
+	}; /* enum class SD::MMC::Host::pullup*/
+
+	namespace bus
+	{
+	    /// bus width designation
+	    enum class width: uint8_t
+	    {
+		def = SDMMC_SLOT_WIDTH_DEFAULT, /* maximum bus width of the slot*/
+		_1 = 1,
+		one = _1,
+		_4 = 4,
+		four = _4,
+		_8 = 8,
+		eight = _8
+	    }; /* enum class SD::MMC::bus::width */
+	}; /* namespace SD::MMC::bus */
+
+
+	struct Slot;
 
     }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
+#endif
+
+    /// SPI abstraction namespace
+    namespace SPI
+    {
+	/// SPI Device configuration description
+	struct Descr;
+
+    }; //--[ namespace SD::SPI ]---------------------------------------------------------------------------------------
 
 
     class Card;
 
+    /// General definition of the SD MMC/SPI/other card hosts
     struct Host
     {
 	friend class Card;
 
-	enum class flags {
-	    support_1bit = SDMMC_HOST_FLAG_1BIT,	/*!< host supports 1-line SD and MMC protocol */
-	    support_4bit = SDMMC_HOST_FLAG_4BIT,	/*!< host supports 4-line SD and MMC protocol */
-	    support_8bit = SDMMC_HOST_FLAG_8BIT,	/*!< host supports 8-line MMC protocol */
-	    support_SPI  = SDMMC_HOST_FLAG_SPI,	/*!< host supports SPI protocol */
-	    support_DDR  = SDMMC_HOST_FLAG_DDR,	/*!< host supports DDR mode for SD/MMC */
-	    support_deinit = SDMMC_HOST_FLAG_DEINIT_ARG	/*!< host `deinit` function called with the slot argument */
+	enum class flags: uint32_t {
+	    _1bit = SDMMC_HOST_FLAG_1BIT,	/*!< host supports 1-line SD and MMC protocol */
+	    _4bit = SDMMC_HOST_FLAG_4BIT,	/*!< host supports 4-line SD and MMC protocol */
+	    _8bit = SDMMC_HOST_FLAG_8BIT,	/*!< host supports 8-line MMC protocol */
+	    spi   = SDMMC_HOST_FLAG_SPI,	/*!< host supports SPI protocol */
+	    ddr   = SDMMC_HOST_FLAG_DDR,	/*!< host supports DDR mode for SD/MMC */
+	    deinit  = SDMMC_HOST_FLAG_DEINIT_ARG,	/*!< host `deinit` function called with the slot argument */
+	    int_buf = SDMMC_HOST_FLAG_ALLOC_ALIGNED_BUF      /*!< Allocate internal buffer of 512 bytes that meets DMA's requirements.
+                                                 Currently this is only used by the SDIO driver. Set this flag when
+                                                 using SDIO CMD53 byte mode, with user buffer that is behind the cache
+                                                 or not aligned to 4 byte boundary. */
 	}; /* enum class SD::Host::flags */
 
-	enum class freq {
+
+	enum class freq: int {
 	    def     = SDMMC_FREQ_DEFAULT,	/*!< SD/MMC Default speed (limited by clock divider) */
 	    high    = SDMMC_FREQ_HIGHSPEED,	/*!< SD High speed (limited by clock divider) */
 	    probing = SDMMC_FREQ_PROBING,	/*!< SD/MMC probing speed */
 	    _52M    = SDMMC_FREQ_52M,	/*!< MMC 52MHz speed */
-	    _26M    = SDMMC_FREQ_26M	/*!< MMC 26MHz speed */
+	    _26M    = SDMMC_FREQ_26M,	/*!< MMC 26MHz speed */
+	    ddr50   = SDMMC_FREQ_DDR50,	/*!< MMC 50MHz speed */
+	    sdr50   = SDMMC_FREQ_SDR50,	/*!< MMC 100MHz speed */
 	}; /* SD::Host::Freq */
+#if 0
+	//FIXME Needed really?
+	union Config
+	{
+	    static MMC::Slot&  mmc;
+	    static SPI::Descr& spi;
+	}; /* union SD::Host::Config */
+#endif
 
-	// "copy" constructor
-	Host(const sdmmc_host_t& xcfg /*= sdmmc_host_t(SDMMC_HOST_DEFAULT())*/, MMC::slot num = MMC::slot::number_0): cfg(xcfg) {};
-	// copy constructor
-	Host(const Host& host): Host(host.cfg) {};
+	//TODO Must implemented inner class "Mounter" with one pure virtual method operator() that emulated operation 'mount()'
+	//TODO intendet, that class store hided reference to configuration parameters for 'mount' procedure, specifical for MMC or SPI hosts
 
+//	// "copy" constructor
+//	Host(const sdmmc_host_t& xcfg /*= sdmmc_host_t(SDMMC_HOST_DEFAULT())*/, MMC::slot num = MMC::slot::number_0): cfg(xcfg) {};
+//	// copy constructor
+//	Host(const Host& host): Host(host.cfg) {};
+//
 	virtual ~Host() = default;
 
 	/// Last operation return status / error status
@@ -74,18 +158,6 @@ namespace SD //-----------------------------------------------------------------
 	/// Clear the error status
 	void reset_state() { err = ESP_OK;};
 
-
-	//!
-	// @brief Initialize SDMMC/SDSPI host peripheral.
-	//
-	// @note This function is not thread safe
-	//
-	// @return
-	//      - ESP_OK on success
-	//	- ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
-	//	- ESP_ERR_NO_MEM if memory can not be allocated
-	//TODO For remove
-//	esp_err_t virtual pure_init(void) = 0;
 
 	//!
 	// @brief Initialize given slot of SDMMC peripheral
@@ -104,6 +176,10 @@ namespace SD //-----------------------------------------------------------------
 	// @return
 	//      - ESP_OK on success
 	//      - ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
+#if 0
+// TODO fo remove
+	esp_err_t virtual init(const MMC::Slot& extslot) = 0;
+#endif
 	esp_err_t virtual init() = 0;
 
 	//!
@@ -146,8 +222,8 @@ namespace SD //-----------------------------------------------------------------
 	//      - ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
 	//      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
 	//      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
-	esp_err_t virtual do_transaction(sdmmc_command_t *cmdinfo) = 0;
-	esp_err_t virtual do_transaction(sdmmc_command_t& cmdinfo) = 0;
+	esp_err_t virtual transaction(sdmmc_command_t *cmdinfo) = 0;
+	esp_err_t virtual transaction(sdmmc_command_t& cmdinfo) = 0;
 
 
 	//!
@@ -264,11 +340,11 @@ namespace SD //-----------------------------------------------------------------
 
     protected:
 
-	// Use settings defined above to initialize SD card and mount FAT filesystem.
-	// Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
-	// Please check its source code and implement error recovery when developing
-	// production applications.
-	sdmmc_host_t cfg;
+//	// Use settings defined above to initialize SD card and mount FAT filesystem.
+//	// Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
+//	// Please check its source code and implement error recovery when developing
+//	// production applications.
+//	sdmmc_host_t cfg;
 
 	/// Error status of the last operation.
 	esp_err_t err = ESP_OK;
@@ -296,19 +372,251 @@ namespace SD //-----------------------------------------------------------------
     }; /* struct SD::Host */
 
 
+    /// MMC abstraction namespace
+    namespace MMC
+    {
+
+	namespace slot
+	{
+	    /// slot number designation
+	    enum no: int8_t
+	    {
+		number_0 = SDMMC_HOST_SLOT_0,
+		number_1 = SDMMC_HOST_SLOT_1,
+		one=number_1,
+		null=number_0,
+		out_of_range = -1
+	    }; /* enum class SD::MMC::slot */
+
+	    /// slot flags
+	    enum flags: uint8_t
+	    {
+		none,
+		pullup	= SDMMC_SLOT_FLAG_INTERNAL_PULLUP,
+		wp_high	= SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH,
+		uhs1	= SDMMC_SLOT_FLAG_UHS1,
+	    }; /* enum SD::MMC::slot::flags */
+	}; /* namespace SD::MMC::slot */
+
+	constexpr uint32_t operator | (uint32_t uleft, slot::flags right) {
+		return (uleft | static_cast<uint32_t>(right));
+	}
+	constexpr uint32_t operator | (slot::flags left, uint32_t uright) {
+		return (uright | left);
+	}
+	uint32_t operator | (slot::flags left, slot::flags right) {
+		return static_cast<uint32_t>(left) | right;
+	}
+
+	/// pullup-state designation
+	enum class pullup: uint8_t {
+	    no,
+	    yes = slot::pullup
+	}; /* enum class SD::MMC::Host::pullup*/
+
+	/// write-protect bit encoding
+	namespace wp
+	{
+	    enum class active: int8_t
+	    {
+		low,
+		high = slot::wp_high
+	    }; /* enum class SD::MMC::wp::active */
+	}; /* namespace SD::MMC::wp */
+
+	/// write speed mode - UHS-1 or not
+	enum class uhs: uint8_t {
+	    no,
+	    mode1 = slot::uhs1
+	}; /* enum class SD::MMC::Host::pullup*/
+
+	namespace bus
+	{
+	    /// bus width designation
+	    enum class width: uint8_t
+	    {
+		def = SDMMC_SLOT_WIDTH_DEFAULT, /* maximum bus width of the slot*/
+		_1 = 1,
+		one = _1,
+		_4 = 4,
+		four = _4,
+		_8 = 8,
+		eight = _8
+	    }; /* enum class SD::MMC::bus::width */
+	}; /* namespace SD::MMC::bus */
+
+
+	struct Slot;
+
+    }; //--[ namespace SD::MMC ]---------------------------------------------------------------------------------------
 
     namespace MMC
     {
 
+
+	/// @brief SD::MMC::Slot class for emcapsulating struct sdmmc_slot_config_t
 	struct Slot
 	{
-	    Slot();	// Default config - Slot configured to Slot_1
-	    Slot(const Slot&);		// really copy constructor
-	    Slot(const sdmmc_slot_config_t&);	// copy constructor
 
-	    // Set or clear SD::MMC internal pullup bit
-	    void internal_pullup(bool);
-	    bool  pullup_state() {return (cfg.flags & SDMMC_SLOT_FLAG_INTERNAL_PULLUP)? true: false;};
+		//TODO Need constexpr constructors: default, copy from SD::MMC::Slot, sdmmc_slot_config_t
+		//TODO 'direct' constructor, and with width, flags, write_protect & card_detect signals.
+
+	    constexpr Slot() {};	///< Default config - Slot configured to Slot_1
+//	    Slot(bus::width width, pullup pullup_st = pullup::no, wp::active level = wp::active::low, uhs mode = uhs::no);
+	    constexpr Slot(uint32_t sflags, bus::width swidth = bus::width::def) {
+		flags(sflags);
+		width(swidth);
+	    };
+//	    Slot(MMC::pullup pullup_st = pullup::no, wp::active level = wp::active::low, uhs mode = uhs::no);
+	    /// @brief copy constructor
+	    /// @param slot ource of the slot configuration
+	    constexpr Slot(const Slot& slot): cfg(slot.cfg) {};
+	    /// @brief copy constructor from sdmmc_slot_config_t param
+	    /// @param slcfg  ource of the slot configuration of the type sdmmc_slot_config_t
+	    constexpr Slot(const sdmmc_slot_config_t& slcfg): cfg(slcfg) {};
+	    /// @brief Full direct generation of the Slot object
+	    /// @param clk  GPIO number of CLK signal.
+	    /// @param cmd  GPIO number of CMD signal.
+	    /// @param d0  GPIO number of D0 signal.
+	    /// @param d1  GPIO number of D1 signal.
+	    /// @param d2  GPIO number of D2 signal.
+	    /// @param d3  GPIO number of D3 signal.
+	    /// @param d4  GPIO number of D4 signal. Ignored in 1- or 4- line mode.
+	    /// @param d5  GPIO number of D5 signal. Ignored in 1- or 4- line mode.
+	    /// @param d6  GPIO number of D6 signal. Ignored in 1- or 4- line mode.
+	    /// @param d7  GPIO number of D7 signal. Ignored in 1- or 4- line mode.
+	    /// @param cd  GPIO number of card detect signal; shorter name.
+	    /// @param wp  GPIO number of write protect signal; shorter name.
+	    /// @param width  Bus width used by the slot (might be less than the max width supported)
+	    /// @param flags  Features used by this slot
+	    constexpr Slot(gpio_num_t clk, gpio_num_t cmd, gpio_num_t d0, gpio_num_t d1, gpio_num_t d2,
+			    gpio_num_t d3, gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7,
+			    gpio_num_t cd, gpio_num_t wp, uint8_t width, uint32_t flags):
+			    cfg {.clk = clk,      
+				 .cmd = cmd,      
+				 .d0  = d0,       
+				 .d1  = d1,       
+				 .d2  = d2,       
+				 .d3  = d3,       
+				 .d4  = d4,       
+				 .d5  = d5,       
+				 .d6  = d6,       
+				 .d7  = d7,       
+				 .cd  = cd,       
+				 .wp  = wp,       
+				 .width = width,  
+				 .flags = flags, }
+			     {};
+
+	    // This initializes the slot without card detect (CD) and write protect (WP) signals.
+	    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
+	    sdmmc_slot_config_t cfg = SDMMC_SLOT_CONFIG_DEFAULT();
+
+	    /// @brief Set the new flags value
+	    /// @param newflags a new flags value, implied using enum SD::MMC::slot::flags
+	    constexpr void flags(uint32_t newflags) {
+		cfg.flags = newflags;
+	    };
+	
+	    constexpr uint32_t flags() {
+		return cfg.flags;
+	    };
+	
+#if 0
+		template <typename flname>
+		/*uint32_t*/void constexpr setflag(/*uint32_t flags,*/ flname state, slot::flags mask) {
+    //		uint32_t actmsk = static_cast<uint32_t>(state) & static_cast<uint32_t>(mask);
+		    uint32_t actflg = static_cast<uint32_t>(state);
+    //		return flags & ~(state & static_cast<uint32_t>(mask)) | (state &  static_cast<uint32_t>(mask)); };
+    //		/*return (*/cfg.flags = (cfg.flags & ~actmsk) | actmsk/*)*/; };
+		    cfg.flags = (cfg.flags | actflg) & (~mask | actflg); };
+    
+		///   Set or clear SD::MMC::Slot internal pullup flag
+	    void constexpr pullup(MMC::pullup state)  {
+		//(cfg.flags | (state & slot::pullup)) & ~(state & slot::pullup);};
+	//	cfg.flags = cfg.flags & ~(state & slot::pullup) | (state & slot::pullup); };
+		/*cfg.flags =*/ setflag(/*cfg.flags,*/ state, slot::pullup); };
+//		pullup(state == MMC::pullup::yes);};
+	    //!
+	    // @brief   Set or clear SD::MMC::Slot internal pullup flag
+	    // @param   state
+	    //	      - true : enable the internal pullup
+	    //	      - false: disable the internal pullup
+	    // @return  none
+	    void constexpr pullup(bool state)  {
+//		cfg.flags = cfg.flags & ~(state & slot::pullup) | (state & slot::pullup);
+		pullup(state? pullup::yes: pullup::no); };
+	    //!
+	    // @brief   Return the value of SD::MMC::Slot internal pullup bit
+	    // @param   none
+	    // @return
+	    //		- true : enable the internal pullup
+	    //		- false: disable the internal pullup
+	    bool constexpr pullup() {return (cfg.flags & static_cast<uint32_t>(MMC::pullup::yes)/*SDMMC_SLOT_FLAG_INTERNAL_PULLUP*/);};
+
+	    /// Select active level of the Write Protect GPIO
+	    void constexpr wp_active(wp::active state)  {
+//		wp_active(state == wp::active::high); }; /* SD::MMC::Slot::pullup() */
+		/*cfg.flags =*/ setflag(/*cfg.flags,*/ state, slot::wp_high); };
+	    //!
+	    // @brief   Select active level of the Write Protect GPIO
+	    // @param   state
+	    //	      - true : set active level of the WP GPIO to High
+	    //	      - false: set active level of the WP GPIO to Low
+	    // @return  none
+	    void constexpr wp_active(bool state)  {
+//		cfg.flags = (state)? cfg.flags | SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH: cfg.flags & ~SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH; }; /* SD::MMC::Slot::pullup() */
+		wp_active(state? wp::active::high: wp::active::low); };
+	    //!
+	    // @brief   Return the active level of the Write Protect GPIO
+	    // @param   none
+	    // @return
+	    //	      - true : active level of the WP GPIO is High
+	    //	      - false: active level of the WP GPIO is Low
+	    bool constexpr wp_active() { return (cfg.flags & static_cast<uint32_t>(wp::active::high)/*SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH*/);};
+
+	    /// Enable/disable the UHS-1 mode for sd-card in desired slot
+	    void constexpr UHS(uhs state) {
+//		UHS(state == uhs::mode1); }; /* SD::MMC::Slot::pullup() */
+		/*cfg.flags =*/ setflag(/*cfg.flags,*/ state, slot::uhs1); };
+	    //!
+	    // @brief   Enable/disable the UHS-1 mode for sd-card in desired slot
+	    // @param   state
+	    //	      - true : enable the UHS-1 mode
+	    //	      - false: disable the UHS-1 mode
+	    // @return  none
+	    void constexpr UHS(bool state) {
+//		cfg.flags = (state)? cfg.flags | SDMMC_SLOT_FLAG_UHS1: cfg.flags & ~SDMMC_SLOT_FLAG_UHS1; }; /* SD::MMC::Slot::pullup() */
+		UHS(state? uhs::mode1: uhs::no); };
+	    //!
+	    // @brief   Read the UHS-1 mode for sd-card in desired slot
+	    // @param   none
+	    // @return
+	    //	      - true : the UHS-1 mode is enabled
+	    //	      - false: the UHS-1 mode is disabled
+	    bool constexpr UHS() {return (cfg.flags & static_cast<uint32_t>(uhs::mode1)/*SDMMC_SLOT_FLAG_UHS1*/);};
+
+
+	    /// Set the 'flag' field value of the SD::MMC::Slot
+	    void flags(uint32_t val)  {
+		cfg.flags = val;
+	    }; /* SD::MMC::Slot::flags() */
+#endif
+
+
+	    //!
+	    // @brief   set the width the bus of the desired host
+	    // @param   width: desired host bus width
+	    // @return  none
+	    void constexpr width(bus::width width)  {
+		cfg.width = static_cast<uint8_t>(width);
+	    }; /* SD::MMC::Slot::pullup() */
+	    //!
+	    // @brief   return width of the bus for the desired host
+	    // @param   none
+	    // @return  desired host bus width
+	    uint8_t constexpr width() {return cfg.width;};
+
 
 	    Slot& operator =(const Slot&);
 	    Slot& operator =(const sdmmc_slot_config_t&);
@@ -317,27 +625,8 @@ namespace SD //-----------------------------------------------------------------
 	    operator sdmmc_slot_config_t&() {return cfg;};
 	    operator sdmmc_slot_config_t*() {return &cfg;};
 
-	    // This initializes the slot without card detect (CD) and write protect (WP) signals.
-	    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
-	    sdmmc_slot_config_t cfg = SDMMC_SLOT_CONFIG_DEFAULT(); // @suppress("Invalid arguments")
+	}; /* struct SD::MMC::Slot */
 
-	private:
-
-	    friend class Host;
-
-	}; /* struct Slot */
-
-
-	namespace bus
-	{
-	    enum class width
-	    {
-		def = SDMMC_SLOT_WIDTH_DEFAULT, /* maximum bus width of the slot*/
-		_1 = 1,
-		_4 = 4,
-		_8 = 8,
-	    }; /* enum class SD::MMC::bus::width */
-	}; /* namespace SD::MMC::bus */
 
 
 	//=================================================
@@ -346,27 +635,45 @@ namespace SD //-----------------------------------------------------------------
 	{
 	    friend class SD::Card;
 
-	    enum class pullup {
-		no,
-		yes
-	    }; /* enum class SD::MMC::Host::pullup*/
 
 	    // Default constructor
+	    Host() {};
+
+	    Host(slot::no no, uint32_t setflags, int maxfreq = SDMMC_FREQ_DEFAULT);
+	    //Host(slot::no no, uint32_t setflags, int maxfreq);
+
+	    // "copy" constructor
+	    constexpr Host(const sdmmc_host_t& xhost ): instance(xhost) {};
+	    // copy constructor
+	    constexpr Host(const Host& xhost): Host(xhost.instance) {};
+
+#if 0
 	    Host(bus::width = bus::width::def, pullup = pullup::no);
 	    // Constructor with default slot configuration by number of the slot
-	    Host(SD::MMC::slot, bus::width = bus::width::def, pullup = pullup::no);
+	    Host(SD::MMC::Slot, bus::width = bus::width::def, pullup = pullup::no);
 	    // Custom slot configuration in temporary obj for desired slot number
-	    Host(SD::MMC::slot, const Slot&, bus::width = bus::width::def, pullup = pullup::no);	// in lvalue object
+	    Host(SD::MMC::Slot, const Slot&, bus::width = bus::width::def, pullup = pullup::no);	// in lvalue object
 	    // Copy constructors
 	    Host(const Host&, bus::width = bus::width::def, pullup = pullup::no);		// for lvalue object (defined variable)
 	    // for lvalue object (defined variable)
 	    Host(const sdmmc_host_t&, bus::width = bus::width::def, pullup = pullup::no);
 	    // for lvalue object (defined variable)
 	    Host(const sdmmc_host_t& ehost, const sdmmc_slot_config_t& eslot, bus::width busw = bus::width::def, pullup pullst = pullup::no):
-		Host(ehost, busw, pullst) {_slot = eslot;};
+		Host(ehost, busw, pullst) {
+		ESP_LOGD("sdcard_io header", "constructor SD::MMC::Host::Host(const sdmmc_host_t& ehost, const sdmmc_slot_config_t& eslot, bus::width busw = bus::width::def, pullup pullst = pullup::no)");
+		slot = eslot;
+	    };
+#endif
 	    ~Host() override = default;
 
-	    Slot& slot() { return _slot;};
+	    // Use settings defined above to initialize SD card and mount FAT filesystem.
+	    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
+	    // Please check its source code and implement error recovery when developing
+	    // production applications.
+
+	    //Slot slot;
+
+//	    Slot& slot() { return _slot;};
 
 	    operator sdmmc_host_t&();
 	    operator sdmmc_host_t*();
@@ -374,13 +681,20 @@ namespace SD //-----------------------------------------------------------------
 	    Host& operator =(const Host&);
 	    Host& operator =(const sdmmc_host_t&);
 
-	    void set_pullup(pullup pullup_st) { _slot.internal_pullup((pullup_st == pullup::yes)? true: false);}
-	    bool pullup_state() {return _slot.pullup_state();};
+	//    void constexpr pullup(pullup pullup_st) { slot.pullup(pullup_st);}
+	//    bool constexpr pullup() {return slot.pullup();};
 
 	    /// @warning use сarefully! may be incorrect behavior!
-	    int slot_no();
-	    int slot_no(SD::MMC::slot num);
+	    int constexpr slot_no() { return instance.slot; };
+	    int slot_no(SD::MMC::slot::no num);
 
+
+	    // Use settings defined above to initialize SD card and mount FAT filesystem.
+	    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
+	    // Please check its source code and implement error recovery when developing
+	    // production applications.
+	    sdmmc_host_t instance = SDMMC_HOST_DEFAULT();
+	    /*instance.max_freq_khz = SDMMC_FREQ_HIGHSPEED;*/
 
 	    //!
 	    // @brief Convenience function to get FAT filesystem on SD card registered in VFS
@@ -420,20 +734,6 @@ namespace SD //-----------------------------------------------------------------
 	    esp_err_t mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) override;
 
 	    //!
-	    // @brief Initialize SDMMC host peripheral
-	    //
-	    // @warning This function is deprecate!
-	    // @note This function is not thread safe
-	    //
-	    // @return
-	    //      - ESP_OK on success
-	    //	- ESP_ERR_INVALID_STATE if sdmmc_host_init was already called
-	    //	- ESP_ERR_NO_MEM if memory can not be allocated
-	    //TODO For remove
-//	    [[deprecated("Use the \"init()\" procedure or sdmmc_host_init_slot() instead")]]
-//	    esp_err_t pure_init(void) override { return (err = sdmmc_host_init()); };
-
-	    //!
 	    // @brief Initialize given slot of SDMMC peripheral
 	    //
 	    // On the ESP32, SDMMC peripheral has two slots:
@@ -450,9 +750,13 @@ namespace SD //-----------------------------------------------------------------
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_INVALID_STATE if host has not been initialized using sdmmc_host_init
-	    esp_err_t init() override {return (err = sdmmc_host_init_slot(cfg.slot, &_slot.cfg)); };
-	    esp_err_t init(MMC::slot, const Slot& extern_slot);
-	    esp_err_t init(MMC::slot, Slot&& extern_slot);
+#if 0
+	    // TODO to remove
+	    esp_err_t init(const Slot& extslot) override {return (err = sdmmc_host_init_slot(instance.slot, &const_cast<Slot&>(extslot).cfg)); };
+#endif
+	    esp_err_t init() override {return (err = sdmmc_host_init_slot(instance.slot, &const_cast<Slot&>(extslot).cfg)); };
+//	    esp_err_t init(MMC::slot::no, const Slot& extern_slot);
+//	    esp_err_t init(MMC::slot::no, Slot&& extern_slot);
 
 	    //!
 	    // @brief Select bus width to be used for data transfer
@@ -463,18 +767,20 @@ namespace SD //-----------------------------------------------------------------
 	    // @note This function is not thread safe
 	    //
 	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
-	    // @param width  bus width (1, 4, or 8 for slot 0; 1 or 4 for slot 1)
+	    // @param width  bus width: 1, 4, or 8 for slot 0; 1 or 4 for slot 1
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_INVALID_ARG if slot number or width is not valid
-	    esp_err_t bus_width(bus::width width) { return (err = cfg.set_bus_width/*sdmmc_host_set_bus_width*/(cfg.slot, static_cast<size_t>(width))); };
+	    esp_err_t bus_width(bus::width width) {
+
+		return (err = instance.set_bus_width/*sdmmc_host_set_bus_width*/(instance.slot, static_cast<uint8_t/*size_t*/>(width))); };
 
 	    //!
 	    // @brief Get bus width configured in ``sdmmc_host_init_slot`` to be used for data transfer
 	    //
 	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	    // @return configured bus width of the specified slot.
-	    size_t bus_width() { return cfg.get_bus_width(cfg.slot); };
+	    size_t bus_width() { return instance.get_bus_width(instance.slot); };
 
 	    //!
 	    // @brief Set card clock frequency
@@ -491,7 +797,7 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_OK on success
 	    //      - other error codes may be returned in the future
 	    //        esp_err_t (*set_card_clk)(int slot, uint32_t freq_khz); /*!< host function to set card clock frequency */
-	    esp_err_t set_card_clk(uint32_t freq_khz) {return (err = cfg.set_card_clk(cfg.slot, freq_khz)); };
+	    esp_err_t set_card_clk(uint32_t freq_khz) {return (err = instance.set_card_clk(instance.slot, freq_khz)); };
 
 	    //!
 	    // @brief Enable or disable DDR mode of SD interface
@@ -500,7 +806,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_NOT_SUPPORTED if DDR mode is not supported on this slot
-	    esp_err_t set_ddr_mode(bool ddr_enabled) { return (err = cfg.set_bus_ddr_mode(cfg.slot, ddr_enabled)); };
+	    esp_err_t set_ddr_mode(bool ddr_enabled) { return (err = instance.set_bus_ddr_mode(instance.slot, ddr_enabled)); };
 
 	    //!
 	    // @brief Send command to the card and get response
@@ -525,8 +831,8 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
 	    //      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
 	    //      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
-	    esp_err_t do_transaction(sdmmc_command_t *cmdinfo) override { return (err = cfg.do_transaction(cfg.slot, cmdinfo)); };
-	    esp_err_t do_transaction(sdmmc_command_t& cmdinfo) override { return (err = cfg.do_transaction(cfg.slot, &cmdinfo)); };
+	    esp_err_t transaction(sdmmc_command_t *cmdinfo) override { return (err = instance.do_transaction(instance.slot, cmdinfo)); };
+	    esp_err_t transaction(sdmmc_command_t& cmdinfo) override { return (err = instance.do_transaction(instance.slot, &cmdinfo)); };
 
 	    //!
 	    // @brief Disable SDMMC host and release allocated resources
@@ -536,16 +842,9 @@ namespace SD //-----------------------------------------------------------------
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
-	    esp_err_t deinit(void) override { return (err = sdmmc_host_deinit());};
+	    esp_err_t constexpr deinit(void) override { return (err = sdmmc_host_deinit());};
 
 	private:
-
-	    // Use settings defined above to initialize SD card and mount FAT filesystem.
-	    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
-	    // Please check its source code and implement error recovery when developing
-	    // production applications.
-
-	    Slot _slot;
 
 	    //!
 	    // @brief Enable IO interrupts
@@ -555,7 +854,7 @@ namespace SD //-----------------------------------------------------------------
 	    //
 	    // @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	    // @return returns ESP_OK, other errors possible in the future
-	    esp_err_t io_int_enable() override { return (err = cfg.io_int_enable(cfg.slot));};
+	    esp_err_t constexpr io_int_enable() override { return (err = instance.io_int_enable(instance.slot));};
 
 	    //!
 	    // @brief Block until an SDIO interrupt is received, or timeout occurs
@@ -566,7 +865,7 @@ namespace SD //-----------------------------------------------------------------
 	    //  - ESP_OK on success (interrupt received)
 	    //  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 	    //        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	    esp_err_t io_int_wait(TickType_t timeout_ticks) override { return (err = cfg.io_int_wait(cfg.slot, timeout_ticks));};
+	    esp_err_t constexpr io_int_wait(TickType_t timeout_ticks) override { return (err = instance.io_int_wait(instance.slot, timeout_ticks));};
 
 	}; /* struct SD::MMC::Host */
 
@@ -839,7 +1138,7 @@ namespace SD //-----------------------------------------------------------------
 	//      - One of the error codes from SDMMC host controller
 	esp_err_t init(const sdmmc_host_t *host) { return sdmmc_card_init(host, self);};
 	esp_err_t init(const sdmmc_host_t& host) { return sdmmc_card_init(&host, self);};
-	esp_err_t init(const MMC::Host& host) { return sdmmc_card_init(&host.cfg, self);};
+	esp_err_t init(const MMC::Host& host) { return sdmmc_card_init(&host.instance, self);};
 
 	/// for a class Device: request formatting SD-card if mount failed:
 	enum class format {
@@ -1003,7 +1302,7 @@ namespace SD //-----------------------------------------------------------------
 	static const char* TAG;
 	sdmmc_card_t* self;
 
-    }; /* class Card */
+    }; /* class SD::Card */
 
 
     namespace MMC
@@ -1017,20 +1316,32 @@ namespace SD //-----------------------------------------------------------------
 	// - Implementation the mount & unmount methods.
 	struct Device
 	{
+#if 0
+	    Slot(bus::width width, pullup pullup_st = pullup::no, wp::active level = wp::active::low, uhs mode = uhs::no);
+	    Slot(MMC::pullup pullup_st = pullup::no, wp::active level = wp::active::low, uhs mode = uhs::no);
+#endif
 
-	    Device(bus::width = bus::width::def, Host::pullup = Host::pullup::no,
+	    Device(bus::width width = bus::width::def, pullup pullup_st = pullup::no,
+		    wp::active level = wp::active::low, uhs mode = uhs::no,
+//		    bus::width = bus::width::def, pullup = pullup::no,
 		    esp_vfs_fat_sdmmc_mount_config_t&& mnt_cfg = {
 						.format_if_mount_failed = false,
 						.max_files = 5,
 						.allocation_unit_size = 16*1024,
 						.disk_status_check_enable = false,
 						.use_one_fat = false
-					    } );
+						} );
 	    Device(SD::Card::format autofmt,
 		    int max_files = 5, size_t unit_size = 16 * 1024, bool disk_st_chk = false,
-		    bus::width = bus::width::def, Host::pullup = Host::pullup::no);
+//		    bus::width = bus::width::def, pullup = pullup::no);
+		    bus::width width = bus::width::def, pullup pullup_st = pullup::no,
+		    wp::active level = wp::active::low, uhs mode = uhs::no);
 
-	    Host& host() {return _host;};
+//	    Host& host() {return _host;};
+
+	    Host  host;
+	    Slot slot;
+
 
 	    esp_err_t mount(Card&, std::string mountpoint);	// Mount default SD-card slot onto path "mountpoint"
 //	    esp_err_t mount(Card&, int slot_no);		// Mount SD-card slot "slot_no" onto default mount path
@@ -1053,20 +1364,19 @@ namespace SD //-----------------------------------------------------------------
 
 	    //! get current slot number
 	    // @return   current slot number
-	    int slot_no() {return _host.slot_no();}
+	    int slot_no() {return host.slot_no();}
 
 	    //! set slot number of the host
 	    //
 	    // @note  use сarefully! may be incorrect behavior!
 	    // @param num  new slot number
 	    // @return    prev slot number
-	    int slot_no(int num) {return _host.slot_no((num == 0)? slot::number_0: ((num == 1)? slot::number_1: slot::out_of_range));}
+	    int slot_no(int num) {return host.slot_no((num == 0)? slot::number_0: ((num == 1)? slot::number_1: slot::out_of_range));}
 
 	    Card* card = nullptr;
 
 	private:
 
-	    Host _host;
 	    std::string target = "";
 	    esp_vfs_fat_sdmmc_mount_config_t mnt;
 	    esp_err_t ret = ESP_OK;	// Error status
@@ -1093,7 +1403,7 @@ namespace SD //-----------------------------------------------------------------
     // @brief Convenience function to get FAT filesystem on SD card registered in VFS
     //
     inline esp_err_t MMC::Host::mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) {
-	return (err = esp_vfs_fat_sdmmc_mount(path.data(), &cfg, &_slot, &mount_config, &card.self));
+	return (err = esp_vfs_fat_sdmmc_mount(path.data(), &instance/*&cfg*//*host_cfg*/, &_slot/*slot cfg*/, &mount_config, &card.self));
     };
 
 

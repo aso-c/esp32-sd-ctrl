@@ -78,14 +78,32 @@ namespace SD //-----------------------------------------------------------------
 
 //--[ strust SD::MMC::Host ]-------------------------------------------------------------------------------------------
 
+    MMC::Host::Host(slot::no no, uint32_t setflags, int maxfreq)
+//	    instance.slot(no)
+    {
+	instance.slot = no;
+	instance.flags = setflags;
+	instance.max_freq_khz = maxfreq;
+    }; /* SD::MMC::Host::Host(slot::no, flags, maxfreq) */
+
+#if 0
     /// Default constructor
     MMC::Host::Host(bus::width width, pullup pullupst):
 	SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT()))
     {
 	//slot.default_num(cfg.slot);
-	ESP_LOGD(TAG, "Using SDMMC peripheral - constructor with bus width and pullup state");
+    	ESP_LOGD(TAG, "%s: Using SDMMC peripheral - constructor with bus width %i and [%s pullup] in MMC::Host::Host(bus::width width, pullup pullupst)", __FILE__, (int)width, (pullupst == pullup::yes)? "with": "no");
+//	clog << "Using SDMMC peripheral - constructor with bus width and pullup state MMC::Host::Host(bus::width width, pullup pullupst)" << endl;
 	// Define my delay for SD/MMC command execution
 	// cfg.command_timeout_ms = SDMMC_COMMAND_TIMEOUT;
+
+	ESP_LOGD(TAG,"%s: set bus width to %i in constructor \"%s\"",  __FUNCTION__, (int)width, __PRETTY_FUNCTION__);
+//	clog << TAG << ": set bus width to " << (int)width << " in constructor \"" << __PRETTY_FUNCTION__ << '"' << endl;
+	for (int i = 0; i < 10000; i++)
+	    ;
+	ESP_LOGD(TAG,"SD::MMC::Host: after waiting loop set bus width to %i in constructor \"Host::Host(bus::width width, pullup pullupst)\"",  (int)width);
+	for (int i = 0; i < 10000; i++)
+	    ;
 	bus_width(width);
 	set_pullup(pullupst);
     }; /* SD::MMC::Host::Host */
@@ -94,6 +112,7 @@ namespace SD //-----------------------------------------------------------------
     MMC::Host::Host(MMC::slot number, bus::width width, Host::pullup pullupst):
 		SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT()))
     {
+	ESP_LOGD(TAG, "%s: constructor SD::MMC::Host::Host(MMC::slot number, bus::width width, Host::pullup pullupst)", __FILE__);
 	cfg.slot = static_cast<int>(number); // @suppress("Field cannot be resolved")
 	static_cast<sdmmc_slot_config_t*>(_slot)->width = static_cast<uint8_t>(width);
 	bus_width(width);
@@ -107,6 +126,7 @@ namespace SD //-----------------------------------------------------------------
 		SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT())),
 		_slot(slot)
     {
+	ESP_LOGD(TAG, "%s: constructor SD::MMC::Host::Host(MMC::slot num, const Slot& slot, bus::width width, pullup pullupst)", __FILE__);
 	cfg.slot = static_cast<int>(num);
 	((sdmmc_slot_config_t*)_slot)->width = static_cast<uint8_t>(width);
 	bus_width(width);
@@ -118,6 +138,7 @@ namespace SD //-----------------------------------------------------------------
     MMC::Host::Host(const Host& host, bus::width width, pullup pullupst):
 		Host(host.cfg, width, pullupst)
     {
+	ESP_LOGD(TAG, "%s: constructor SD::MMC::Host::Host(const Host& host, bus::width width, pullup pullupst)", __FILE__);
 	_slot = host._slot;
     }; /* SD::MMC::Host::Host(const Host&) */
 
@@ -126,80 +147,74 @@ namespace SD //-----------------------------------------------------------------
 		//SD::Host(sdmmc_host_t(SDMMC_HOST_DEFAULT()))
 		SD::Host(hostcfg)
     {
+	ESP_LOGD(TAG, "%s: constructor SD::MMC::Host::Host(const sdmmc_host_t& hostcfg, bus::width width, pullup pullupst)", __FILE__);
 	bus_width(width);
 	set_pullup(pullupst);
     }; /* SD::MMC::Host::Host(const sdmmc_host_t&) */
+#endif
 
 
     MMC::Host::operator sdmmc_host_t&() {
-	return cfg;
+	return instance;
     };
 
     MMC::Host::operator sdmmc_host_t*() {
-	return &cfg;
+	return &instance;
     };
 
 
     MMC::Host& MMC::Host::operator =(const Host& host)
     {
-	*this = host.cfg;
-	_slot = host._slot;
+	*this = host.instance;
 	return *this;
     }; /* SD::MMC::Host::operator =(const Host& */
 
     MMC::Host& MMC::Host::operator =(const sdmmc_host_t& host)
     {
 	// uint32_t flags;             /*!< flags defining host properties */
-	cfg.flags = host.flags;	/*!< flags defining host properties */
+	instance.flags = host.flags;	/*!< flags defining host properties */
 	//        int slot;                   /*!< slot number, to be passed to host functions */
-	cfg.slot = host.slot;	/*!< slot number, to be passed to host functions */
+	instance.slot = host.slot;	/*!< slot number, to be passed to host functions */
 	//        int max_freq_khz;           /*!< max frequency supported by the host */
-	cfg.max_freq_khz = host.max_freq_khz;	/*!< max frequency supported by the host */
+	instance.max_freq_khz = host.max_freq_khz;	/*!< max frequency supported by the host */
 	//        float io_voltage;           /*!< I/O voltage used by the controller (voltage switching is not supported) */
-	cfg.io_voltage = host.io_voltage;	/*!< I/O voltage used by the controller (voltage switching is not supported) */
+	instance.io_voltage = host.io_voltage;	/*!< I/O voltage used by the controller (voltage switching is not supported) */
 	//        esp_err_t (*init)(void);    /*!< Host function to initialize the driver */
-	cfg.init = host.init;	/*!< Host function to initialize the driver */
+	instance.init = host.init;	/*!< Host function to initialize the driver */
 	//        esp_err_t (*set_bus_width)(int slot, size_t width);    /*!< host function to set bus width */
-	cfg.set_bus_width = host.set_bus_width;	/*!< host function to set bus width */
+	instance.set_bus_width = host.set_bus_width;	/*!< host function to set bus width */
 	//        size_t (*get_bus_width)(int slot); /*!< host function to get bus width */
-	cfg.get_bus_width = host.get_bus_width;	/*!< host function to get bus width */
+	instance.get_bus_width = host.get_bus_width;	/*!< host function to get bus width */
 	//        esp_err_t (*set_bus_ddr_mode)(int slot, bool ddr_enable); /*!< host function to set DDR mode */
-	cfg.set_bus_ddr_mode = host.set_bus_ddr_mode;	/*!< host function to set DDR mode */
+	instance.set_bus_ddr_mode = host.set_bus_ddr_mode;	/*!< host function to set DDR mode */
 	//        esp_err_t (*set_card_clk)(int slot, uint32_t freq_khz); /*!< host function to set card clock frequency */
-	cfg.set_card_clk = host.set_card_clk;	/*!< host function to set card clock frequency */
+	instance.set_card_clk = host.set_card_clk;	/*!< host function to set card clock frequency */
 	//        esp_err_t (*do_transaction)(int slot, sdmmc_command_t* cmdinfo);    /*!< host function to do a transaction */
-	cfg.do_transaction = host.do_transaction;	/*!< host function to do a transaction */
+	instance.do_transaction = host.do_transaction;	/*!< host function to do a transaction */
 	//        union {
 	//            esp_err_t (*deinit)(void);  /*!< host function to deinitialize the driver */
 	//            esp_err_t (*deinit_p)(int slot);  /*!< host function to deinitialize the driver, called with the `slot` */
 	//        };
-	cfg.deinit = host.deinit;	/*!< host function to deinitialize the driver */
+	instance.deinit = host.deinit;	/*!< host function to deinitialize the driver */
 	//        esp_err_t (*io_int_enable)(int slot); /*!< Host function to enable SDIO interrupt line */
-	cfg.io_int_enable = host.io_int_enable;	/*!< Host function to enable SDIO interrupt line */
+	instance.io_int_enable = host.io_int_enable;	/*!< Host function to enable SDIO interrupt line */
 	//        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	cfg.io_int_wait = host.io_int_wait;	/*!< Host function to wait for SDIO interrupt line to be active */
+	instance.io_int_wait = host.io_int_wait;	/*!< Host function to wait for SDIO interrupt line to be active */
 	//        int command_timeout_ms;     /*!< timeout, in milliseconds, of a single command. Set to 0 to use the default value. */
-	cfg.command_timeout_ms = host.command_timeout_ms;	/*!< timeout, in milliseconds, of a single command. Set to 0 to use the default value. */
-//	if (host.slot == 0)
-//	    _slot = Slot(Slot::number::_0);
+	instance.command_timeout_ms = host.command_timeout_ms;	/*!< timeout, in milliseconds, of a single command. Set to 0 to use the default value. */
 	return *this;
     }; /* SD::MMC::Host::operator =(const sdmmc_host_t&) */
 
 
-    /// @warning use сarefully! may be incorrect behavior!
-    int MMC::Host::slot_no() {
-	return cfg.slot;
-    };
-
     int MMC::Host::slot_no(MMC::slot num)
     {
-	int old = cfg.slot;
-	cfg.slot = static_cast<int>(num);
+	int old = instance.slot;
+	instance.slot = static_cast<int>(num);
 	return old;
     }; /* SD::MMC::Host::slot_no(Slot::number) */
 
 
-
+#if 0
     ///esp_err_t Host::init(int slotno, const sdmmc_slot_config_t *slot_config)
     esp_err_t MMC::Host::init(MMC::slot slotno, const Slot& extern_slot)
     {
@@ -212,6 +227,7 @@ namespace SD //-----------------------------------------------------------------
     {
 	return init(slotno, extern_slot);
     }; /* SD::MMC::Host::init(Slot::number, Slot&&) */
+#endif
 
 
 //--[ strust MMC::Slot ]-----------------------------------------------------------------------------------------------
@@ -245,8 +261,7 @@ namespace SD //-----------------------------------------------------------------
 //=================================================================================================
 
 
-    MMC::Slot::Slot():
-	    cfg(SDMMC_SLOT_CONFIG_DEFAULT())
+    MMC::Slot::Slot()
     {
 	// To use 1-line SD mode, change this to 1:
     //	cfg.width = SLOT_WIDTH;
@@ -271,6 +286,22 @@ namespace SD //-----------------------------------------------------------------
 //	cfg.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
     }; /* SD::MMC::Slot::Slot */
+
+    MMC::Slot::Slot(bus::width new_w, MMC::pullup pullup_st, wp::active level, uhs mode)
+    {
+	width(new_w);
+	pullup(pullup_st);
+	wp_active(level);
+	UHS(mode);
+    }; /* SD::MMC::Slot::Slot(width, :pullup, wp::active level, uhs mode) */
+
+    MMC::Slot::Slot(MMC::pullup pullup_st, wp::active level, uhs mode)
+    {
+	pullup(pullup_st);
+	wp_active(level);
+	UHS(mode);
+    }; /* SD::MMC::Slot::Slot(:pullup, wp::active level, uhs mode)  */
+
 
     //Slot();
     /// really copy constructor
@@ -329,7 +360,7 @@ namespace SD //-----------------------------------------------------------------
 
 
 
-
+#if 0
     /// Set or clear SDD::MMC internal pullup bit
     void MMC::Slot::internal_pullup(bool pullup)
     {
@@ -338,6 +369,7 @@ namespace SD //-----------------------------------------------------------------
 	else
 	    cfg.flags &= ~SDMMC_SLOT_FLAG_INTERNAL_PULLUP;	///> clear internal pullup bit
     }; /* SD::MMC::Slot::internal_pullup */
+#endif
 
 
 
@@ -419,6 +451,16 @@ namespace SD //-----------------------------------------------------------------
     // Mount default SD-card slot onto path "mountpoint"
     esp_err_t MMC::Device::mount(Card& excard, std::string mountpoint)
     {
+#if 0
+    //
+    // @brief Convenience function to get FAT filesystem on SD card registered in VFS
+    //
+    inline esp_err_t MMC::Host::mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) {
+	return (err = esp_vfs_fat_sdmmc_mount(path.data(), &instance/*&cfg*//*host_cfg*/, &_slot/*slot cfg*/, &mount_config, &card.self));
+    };
+
+#endif
+
 	ESP_LOGI(__PRETTY_FUNCTION__, "Mounting SD-Card to a mountpoint \"%s\"", mountpoint.c_str());
 	// if card already mounted - exit with error
 	if (mounted())
