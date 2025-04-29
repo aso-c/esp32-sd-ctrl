@@ -213,6 +213,33 @@ namespace SD //-----------------------------------------------------------------
 	return old;
     }; /* SD::MMC::Host::slot_no(Slot::number) */
 
+ #if 0
+    class mounter: public SD::Host::mounter
+    {
+    public:
+	constexpr mounter(Slot& eslot): slot(eslot) {};
+	constexpr mounter(const mounter& mntr): slot(mntr.slot) {};
+	esp_err_t operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override;
+    private:
+	Slot& slot;
+	friend class Host;
+//		friend esp_err_t Host::init();
+    }; /* class SD::MMC::Host::mounter */
+    #endif
+
+    //--[ class SD::MMC::Host::mounter ]-------------------------------------------------------------------------------
+
+    //
+    // @brief Convenience function to get FAT filesystem on SD card registered in VFS
+    //
+//    inline esp_err_t MMC::Host::mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) {
+//    esp_err_t operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override
+    esp_err_t MMC::Host::mounter::operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override
+    {
+  	return (err = esp_vfs_fat_sdmmc_mount(path.data(), &instance, &slot.cfg, &mount_config, &card.self));
+    };
+
+
 
 #if 0
     ///esp_err_t Host::init(int slotno, const sdmmc_slot_config_t *slot_config)
@@ -260,7 +287,7 @@ namespace SD //-----------------------------------------------------------------
 //
 //=================================================================================================
 
-
+#if 0	// MMC::Slot::Slot()
     MMC::Slot::Slot()
     {
 	// To use 1-line SD mode, change this to 1:
@@ -286,7 +313,9 @@ namespace SD //-----------------------------------------------------------------
 //	cfg.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
     }; /* SD::MMC::Slot::Slot */
+#endif	// MMC::Slot::Slot()
 
+#if 0	// MMC::Slot::Slot(bus::width new_w, MMC::pullup pullup_st, wp::active level, uhs mode)
     MMC::Slot::Slot(bus::width new_w, MMC::pullup pullup_st, wp::active level, uhs mode)
     {
 	width(new_w);
@@ -294,21 +323,26 @@ namespace SD //-----------------------------------------------------------------
 	wp_active(level);
 	UHS(mode);
     }; /* SD::MMC::Slot::Slot(width, :pullup, wp::active level, uhs mode) */
+ #endif	// MMC::Slot::Slot(bus::width new_w, MMC::pullup pullup_st, wp::active level, uhs mode)
 
+ #if 0	// MMC::Slot::Slot(MMC::pullup pullup_st, wp::active level, uhs mode)
     MMC::Slot::Slot(MMC::pullup pullup_st, wp::active level, uhs mode)
     {
 	pullup(pullup_st);
 	wp_active(level);
 	UHS(mode);
     }; /* SD::MMC::Slot::Slot(:pullup, wp::active level, uhs mode)  */
+ #endif	// MMC::Slot::Slot(MMC::pullup pullup_st, wp::active level, uhs mode)
 
-
+#if 0	// MMC::Slot::Slot(const Slot& slot):
     //Slot();
     /// really copy constructor
     MMC::Slot::Slot(const Slot& slot):
 	    cfg(slot.cfg)
     {};
+#endif// MMC::Slot::Slot(const Slot& slot):
 
+#if 0	//     MMC::Slot::Slot(const sdmmc_slot_config_t& config)
     /// from struct sdmmc_slot_config_t copy constructor
     MMC::Slot::Slot(const sdmmc_slot_config_t& config):
 	    cfg(config)
@@ -357,10 +391,10 @@ namespace SD //-----------------------------------------------------------------
              */
 #endif
     }; /* SD::MMC::Slot::Slot(const sdmmc_slot_config_t&) */
+#endif	// MMC::Slot::Slot(const sdmmc_slot_config_t& config):
 
 
-
-#if 0
+#if 0	// void MMC::Slot::internal_pullup(bool pullup)
     /// Set or clear SDD::MMC internal pullup bit
     void MMC::Slot::internal_pullup(bool pullup)
     {
@@ -369,7 +403,7 @@ namespace SD //-----------------------------------------------------------------
 	else
 	    cfg.flags &= ~SDMMC_SLOT_FLAG_INTERNAL_PULLUP;	///> clear internal pullup bit
     }; /* SD::MMC::Slot::internal_pullup */
-#endif
+#endif	// void MMC::Slot::internal_pullup(bool pullup)
 
 
 

@@ -4,6 +4,7 @@
  * 	File: sdspi_io
  *	Author:  aso (Solomatov A.A.)
  *	Created: 09.09.2024
+ *		Updated 24.04.2025
  *	Version: 0.1
  */
 
@@ -24,6 +25,19 @@ namespace SD //-----------------------------------------------------------------
 
     namespace SPI
     {
+
+	//TODO For implemented in future
+	// spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA)
+	// sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+	// slot_config.gpio_cs = PIN_NUM_CS;
+	// slot_config.host_id = host.slot;
+	// ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
+	// esp_err_t sdspi_host_init(void)  // Initialize SD SPI driver.
+	// esp_err_t sdspi_host_init_device(const sdspi_device_config_t *dev_config, sdspi_dev_handle_t *out_handle)  // Attach and initialize an SD SPI device on the specific SPI bus.
+	// 
+	// sdspi_host_remove_device()
+	// sdspi_host_deinit()
+
 	struct Slot
 	// struct Descr  // Device configuration description
 	{
