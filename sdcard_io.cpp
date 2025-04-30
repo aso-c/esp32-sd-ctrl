@@ -4,8 +4,8 @@
  * 	@file: sdcard_ctrl.cpp
  *	@author	Solomatov A.A. (aso)
  *	@date	Created 14.07.2022
- *		Updated 01.11.2024
- *	@version: 0.95
+ *		Updated 30.04.2025
+ *	@version: 0.9.6.2
  *
  */
 
@@ -75,6 +75,10 @@ namespace SD //-----------------------------------------------------------------
     [[maybe_unused]]
     static const char *TAG = "SD/MMC service";
 
+//--[ strust SD::MMC::Slot ]-------------------------------------------------------------------------------------------
+
+    /// @brief  Devault SD::MMC::Slot configuration
+    const MMC::Slot MMC::Slot::def;
 
 //--[ strust SD::MMC::Host ]-------------------------------------------------------------------------------------------
 
@@ -206,12 +210,14 @@ namespace SD //-----------------------------------------------------------------
     }; /* SD::MMC::Host::operator =(const sdmmc_host_t&) */
 
 
+#if 0
     int MMC::Host::slot_no(MMC::slot num)
     {
 	int old = instance.slot;
 	instance.slot = static_cast<int>(num);
 	return old;
     }; /* SD::MMC::Host::slot_no(Slot::number) */
+#endif
 
  #if 0
     class mounter: public SD::Host::mounter
@@ -225,7 +231,7 @@ namespace SD //-----------------------------------------------------------------
 	friend class Host;
 //		friend esp_err_t Host::init();
     }; /* class SD::MMC::Host::mounter */
-    #endif
+#endif
 
     //--[ class SD::MMC::Host::mounter ]-------------------------------------------------------------------------------
 
@@ -234,9 +240,9 @@ namespace SD //-----------------------------------------------------------------
     //
 //    inline esp_err_t MMC::Host::mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) {
 //    esp_err_t operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override
-    esp_err_t MMC::Host::mounter::operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override
+    esp_err_t MMC::Host::mounter::operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ const FAT::mount::config& mount_config, Card& card) const override
     {
-  	return (err = esp_vfs_fat_sdmmc_mount(path.data(), &instance, &slot.cfg, &mount_config, &card.self));
+  	return (phost->err = esp_vfs_fat_sdmmc_mount(path.data(), &phost->instance, &slot.cfg, &mount_config, &card.self));
     };
 
 

@@ -5,7 +5,7 @@
  *	@author	Solomatov A.A. (aso)
  *	@date	Created 20.09.2022
  *		Updated 29.04.2025
- *	@version 0.9.6.1
+ *	@version 0.9.6.2
  *
  */
 
@@ -143,7 +143,7 @@ namespace SD //-----------------------------------------------------------------
 	//! @brief holder additional information for mounting procedure
 	class mounter;
 
-	Host(mounter& amounter): mount(amounter) {};
+	Host(const mounter& amounter): mount(amounter) {};
 	virtual ~Host() = default;
 
 	/// Last operation return status / error status
@@ -174,7 +174,7 @@ namespace SD //-----------------------------------------------------------------
 // TODO fo remove
 	esp_err_t virtual init(const MMC::Slot& extslot) = 0;
 #endif
-	esp_err_t virtual init() = 0;
+	esp_err_t virtual init() const = 0;
 
 	//!
 	// @brief Set card clock frequency
@@ -190,7 +190,7 @@ namespace SD //-----------------------------------------------------------------
 	// @return
 	//      - ESP_OK on success
 	//      - other error codes may be returned in the future
-	esp_err_t virtual card_clk(uint32_t freq_khz) = 0;
+	esp_err_t virtual card_clk(uint32_t freq_khz) const = 0;
 	//TODO To remove
 	//esp_err_t virtual set_card_clk(uint32_t freq_khz) = 0;
 
@@ -218,8 +218,8 @@ namespace SD //-----------------------------------------------------------------
 	//      - ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
 	//      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
 	//      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
-	esp_err_t virtual transaction(sdmmc_command_t *cmdinfo) = 0;
-	esp_err_t virtual transaction(sdmmc_command_t& cmdinfo) = 0;
+	esp_err_t virtual transaction(sdmmc_command_t *cmdinfo) const = 0;
+	esp_err_t virtual transaction(sdmmc_command_t& cmdinfo) const = 0;
 
 	//!
 	// @brief Convenience function to get FAT filesystem on SD card registered in VFS
@@ -258,12 +258,12 @@ namespace SD //-----------------------------------------------------------------
 	class mounter
 	{
 	public:
-	    esp_err_t virtual operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) = 0;
+	    esp_err_t virtual operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ const FAT::mount::config& mount_config, Card& card) const = 0;
 	    virtual ~mounter() = default;
 	}; /* class SD::Host::mounter */
 
 	//! @brief The mounter class object, emulate 'mount()' procedure
-	mounter &mount;
+	const mounter &mount;
 	//TODO 4remove
 //	esp_err_t virtual mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) = 0;
 
@@ -287,7 +287,7 @@ namespace SD //-----------------------------------------------------------------
 	//      - ESP_OK on success
 	//      - ESP_ERR_INVALID_ARG if the card argument is unregistered
 	//      - ESP_ERR_INVALID_STATE if esp_vfs_fat_sdmmc_mount hasn't been called
-	esp_err_t unmount(std::string_view path, Card& card);
+	esp_err_t unmount(std::string_view path, Card& card) const;
 
 
 	//!
@@ -298,7 +298,7 @@ namespace SD //-----------------------------------------------------------------
 	// @return
 	//      - ESP_OK on success
 	//      - ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
-	esp_err_t virtual deinit() = 0;
+	esp_err_t virtual deinit() const = 0;
 
 	struct IO
 	{
@@ -341,7 +341,7 @@ namespace SD //-----------------------------------------------------------------
 
 	}; /* struct SD::Host::IO */
 
-	IO io = this;
+	mutable IO io{this};
 
     protected:
 
@@ -352,7 +352,7 @@ namespace SD //-----------------------------------------------------------------
 //	sdmmc_host_t cfg;
 
 	/// Error status of the last operation.
-	esp_err_t err = ESP_OK;
+	mutable esp_err_t err = ESP_OK;
 
 	//!
 	// @brief Enable IO interrupts
@@ -362,7 +362,7 @@ namespace SD //-----------------------------------------------------------------
 	//
 	// @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	// @return returns ESP_OK, other errors possible in the future
-	esp_err_t virtual io_int_enable() = 0;
+	esp_err_t virtual io_int_enable() const = 0;
 
 	//!
 	// @brief Block until an SDIO interrupt is received, or timeout occurs
@@ -372,7 +372,7 @@ namespace SD //-----------------------------------------------------------------
 	// @return
 	//  - ESP_OK on success (interrupt received)
 	//  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
-	esp_err_t virtual io_int_wait(TickType_t timeout_ticks) = 0;
+	esp_err_t virtual io_int_wait(TickType_t timeout_ticks) const = 0;
 
     }; /* struct SD::Host */
 
@@ -555,6 +555,9 @@ namespace SD //-----------------------------------------------------------------
 	    operator sdmmc_slot_config_t&() {return cfg;};
 	    operator sdmmc_slot_config_t*() {return &cfg;};
 
+	    /// @brief  Devault SD::MMC::Slot configuration
+	    static const Slot def;
+
 	}; /* struct SD::MMC::Slot */
 
 
@@ -567,18 +570,18 @@ namespace SD //-----------------------------------------------------------------
 
 
 	    //! Default constructor
-	    constexpr Host(Slot& extslot): SD::Host(inner), inner(extslot) {};
+	    constexpr Host(Slot& extslot): SD::Host(inner), inner(this, extslot) {};
 
 	    constexpr Host(slot::no no, Slot& extslot, uint32_t setflags = 0, int maxfreq = SDMMC_FREQ_DEFAULT):
 	    SD::Host(inner),
-	    inner(extslot)
+	    inner(this, extslot)
 	    { };
 	    //Host(slot::no no, uint32_t setflags, int maxfreq);
 
 	    //! "copy" constructor
-	    constexpr Host(Slot& extslot, const sdmmc_host_t& xhost):SD::Host(inner), instance(xhost), inner(extslot) {};
+	    constexpr Host(Slot& extslot, const sdmmc_host_t& xhost):SD::Host(inner), instance(xhost), inner(this, extslot) {};
 	    //! copy constructor
-	    constexpr Host(const Host& xhost):SD::Host(inner), instance(xhost.instance), inner(xhost.inner) {};
+	    constexpr Host(const Host& xhost):SD::Host(inner), instance(xhost.instance), inner(this, xhost.inner) {};
 
 #if 0
 	    Host(bus::width = bus::width::def, pullup = pullup::no);
@@ -670,11 +673,13 @@ namespace SD //-----------------------------------------------------------------
 	    class mounter: public SD::Host::mounter
 	    {
 	    public:
-		constexpr mounter(Slot& eslot): slot(eslot) {};
-		constexpr mounter(const mounter& mntr): slot(mntr.slot) {};
-		esp_err_t operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override;
+		constexpr mounter(const Host* const parent, const Slot& eslot): phost(parent), slot(eslot) {};	///< main constructor
+		constexpr mounter(const mounter& mntr): phost(mntr.phost), slot(mntr.slot) {};			///< copy constructor
+		constexpr mounter(const Host* const parent, const mounter& mntr): phost(parent), slot(mntr.slot) {}; ///< partial copy constructor
+		esp_err_t operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ const FAT::mount::config& mount_config, Card& card) const override;
 	    private:
-		Slot& slot;
+	        const Host* const phost;
+		const Slot& slot;
 		friend class Host;
 //		friend esp_err_t Host::init();
 	    }; /* class SD::MMC::Host::mounter */
@@ -702,7 +707,7 @@ namespace SD //-----------------------------------------------------------------
 	    // TODO to remove
 	    esp_err_t init(const Slot& extslot) override {return (err = sdmmc_host_init_slot(instance.slot, &const_cast<Slot&>(extslot).cfg)); };
 #endif
-	    esp_err_t init() override {return (err = sdmmc_host_init_slot(instance.slot, &inner.slot.cfg)); };
+	    esp_err_t init() const override {return (err = sdmmc_host_init_slot(instance.slot, &inner.slot.cfg)); };
 //	    esp_err_t init(MMC::slot::no, const Slot& extern_slot);
 //	    esp_err_t init(MMC::slot::no, Slot&& extern_slot);
 
@@ -719,7 +724,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_INVALID_ARG if slot number or width is not valid
-	    esp_err_t bus_width(bus::width width) {
+	    esp_err_t bus_width(bus::width width) const {
 
 		return (err = instance.set_bus_width/*sdmmc_host_set_bus_width*/(instance.slot, static_cast<uint8_t/*size_t*/>(width))); };
 
@@ -728,7 +733,7 @@ namespace SD //-----------------------------------------------------------------
 	    //
 	    // @param slot  slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	    // @return configured bus width of the specified slot.
-	    size_t bus_width() { return instance.get_bus_width(instance.slot); };
+	    size_t bus_width() const { return instance.get_bus_width(instance.slot); };
 
 	    //!
 	    // @brief Set card clock frequency
@@ -745,7 +750,7 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_OK on success
 	    //      - other error codes may be returned in the future
 	    //        esp_err_t (*set_card_clk)(int slot, uint32_t freq_khz); /*!< host function to set card clock frequency */
-	    esp_err_t card_clk(uint32_t freq_khz) override {return (err = instance.set_card_clk(instance.slot, freq_khz)); };
+	    esp_err_t card_clk(uint32_t freq_khz) const override {return (err = instance.set_card_clk(instance.slot, freq_khz)); };
 
 	    //!
 	    // @brief Enable or disable DDR mode of SD interface
@@ -754,7 +759,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_NOT_SUPPORTED if DDR mode is not supported on this slot
-	    esp_err_t set_ddr_mode(bool ddr_enabled) { return (err = instance.set_bus_ddr_mode(instance.slot, ddr_enabled)); };
+	    esp_err_t set_ddr_mode(bool ddr_enabled) const { return (err = instance.set_bus_ddr_mode(instance.slot, ddr_enabled)); };
 
 	    //!
 	    // @brief Send command to the card and get response
@@ -779,8 +784,8 @@ namespace SD //-----------------------------------------------------------------
 	    //      - ESP_ERR_INVALID_RESPONSE if the card has sent an invalid response
 	    //      - ESP_ERR_INVALID_SIZE if the size of data transfer is not valid in SD protocol
 	    //      - ESP_ERR_INVALID_ARG if the data buffer is not in DMA capable memory
-	    esp_err_t transaction(sdmmc_command_t *cmdinfo) override { return (err = instance.do_transaction(instance.slot, cmdinfo)); };
-	    esp_err_t transaction(sdmmc_command_t& cmdinfo) override { return (err = instance.do_transaction(instance.slot, &cmdinfo)); };
+	    esp_err_t transaction(sdmmc_command_t *cmdinfo) const override { return (err = instance.do_transaction(instance.slot, cmdinfo)); };
+	    esp_err_t transaction(sdmmc_command_t& cmdinfo) const override { return (err = instance.do_transaction(instance.slot, &cmdinfo)); };
 
 	    //!
 	    // @brief Disable SDMMC host and release allocated resources
@@ -790,7 +795,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @return
 	    //      - ESP_OK on success
 	    //      - ESP_ERR_INVALID_STATE if sdmmc_host_init function has not been called
-	    esp_err_t constexpr deinit(void) override { return (err = sdmmc_host_deinit());};
+	    esp_err_t constexpr deinit(void) const override { return (err = sdmmc_host_deinit(/*instance.slot*/));};
 
 	private:
 
@@ -805,7 +810,7 @@ namespace SD //-----------------------------------------------------------------
 	    //
 	    // @param slot  -- param is not used, instead used inner value of the cfg.slot -- slot number (SDMMC_HOST_SLOT_0 or SDMMC_HOST_SLOT_1)
 	    // @return returns ESP_OK, other errors possible in the future
-	    esp_err_t constexpr io_int_enable() override { return (err = instance.io_int_enable(instance.slot));};
+	    esp_err_t constexpr io_int_enable() const override { return (err = instance.io_int_enable(instance.slot));};
 
 	    //!
 	    // @brief Block until an SDIO interrupt is received, or timeout occurs
@@ -816,7 +821,7 @@ namespace SD //-----------------------------------------------------------------
 	    //  - ESP_OK on success (interrupt received)
 	    //  - ESP_ERR_TIMEOUT if the interrupt did not occur within timeout_ticks
 	    //        esp_err_t (*io_int_wait)(int slot, TickType_t timeout_ticks); /*!< Host function to wait for SDIO interrupt line to be active */
-	    esp_err_t constexpr io_int_wait(TickType_t timeout_ticks) override { return (err = instance.io_int_wait(instance.slot, timeout_ticks));};
+	    esp_err_t constexpr io_int_wait(TickType_t timeout_ticks) const override { return (err = instance.io_int_wait(instance.slot, timeout_ticks));};
 
 	}; /* struct SD::MMC::Host */
 
@@ -1385,7 +1390,7 @@ mnt.disk_status_check_enable = disk_st_chk;
     //
     // @brief Unmount an SD card from the FAT filesystem and release resources acquired
     inline
-    esp_err_t SD::Host::unmount(std::string_view path, Card& card)
+    esp_err_t SD::Host::unmount(std::string_view path, Card& card) const
     {
 	return (err = esp_vfs_fat_sdcard_unmount(path.data(), card.self));
     }; /* SD::Host::unmount() */
