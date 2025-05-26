@@ -4,8 +4,8 @@
  * 	@file: sdcard_ctrl.cpp
  *	@author	Solomatov A.A. (aso)
  *	@date	Created 14.07.2022
- *		Updated 30.04.2025
- *	@version: 0.9.6.2
+ *		Updated 25.05.2025
+ *	@version: 0.9.6.3
  *
  */
 
@@ -82,6 +82,7 @@ namespace SD //-----------------------------------------------------------------
 
 //--[ strust SD::MMC::Host ]-------------------------------------------------------------------------------------------
 
+#if 0
     MMC::Host::Host(slot::no no, uint32_t setflags, int maxfreq)
 //	    instance.slot(no)
     {
@@ -89,6 +90,7 @@ namespace SD //-----------------------------------------------------------------
 	instance.flags = setflags;
 	instance.max_freq_khz = maxfreq;
     }; /* SD::MMC::Host::Host(slot::no, flags, maxfreq) */
+#endif
 
 #if 0
     /// Default constructor
@@ -240,7 +242,7 @@ namespace SD //-----------------------------------------------------------------
     //
 //    inline esp_err_t MMC::Host::mount(std::string_view path, esp_vfs_fat_mount_config_t& mount_config, Card& card) {
 //    esp_err_t operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ FAT::mount::config& mount_config, Card& card) override
-    esp_err_t MMC::Host::mounter::operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ const FAT::mount::config& mount_config, Card& card) const override
+    esp_err_t MMC::Host::mounter::operator()(std::string_view path, /*esp_vfs_fat_mount_config_t&*/ const FAT::mount::config& mount_config, Card& card) const
     {
   	return (phost->err = esp_vfs_fat_sdmmc_mount(path.data(), &phost->instance, &slot.cfg, &mount_config, &card.self));
     };
@@ -464,7 +466,7 @@ namespace SD //-----------------------------------------------------------------
 
 //--[ struct SD::MMC::Device ]-----------------------------------------------------------------------------------------
 
-
+#if 0
     MMC::Device::Device(bus::width width, Host::pullup pullst, esp_vfs_fat_sdmmc_mount_config_t&& mnt_cfg):
 		_host(width, pullst)
     {
@@ -473,7 +475,9 @@ namespace SD //-----------------------------------------------------------------
 	mnt.max_files = mnt_cfg.max_files;
 	mnt.allocation_unit_size = mnt_cfg.allocation_unit_size;
     }; /* SD::MMC::Device::Device(bus::width, Host::Pullup, esp_vfs_fat_sdmmc_mount_config_t&) */
+ #endif
 
+ #if 0
     MMC::Device::Device(Card::format autofmt, int max_files, size_t size, bool disk_st_chk,
 		    bus::width width, Host::pullup pull):
 		_host(width, pull)
@@ -484,7 +488,7 @@ namespace SD //-----------------------------------------------------------------
         mnt.allocation_unit_size = size;
         mnt.disk_status_check_enable = disk_st_chk;
     }; /* SD::MMC::Device::Device(Card::format::mntfail, int, size_t, bus::width, Host::Pullup) */
-
+ #endif
 
 
 
@@ -514,21 +518,21 @@ namespace SD //-----------------------------------------------------------------
 
 	ESP_LOGI(__PRETTY_FUNCTION__, "SD-Card mountpoint is set to a \"%s\"", mountpath_c());
 
-	_host.mount(mountpath(), mnt, *card);
-	if (_host.state() != ESP_OK)
+	host.mount(mountpath(), mnt, *card);
+	if (host.state() != ESP_OK)
 	{
-	    if (_host.state() == ESP_FAIL)
+	    if (host.state() == ESP_FAIL)
 		ESP_LOGI(TAG, "Failed to mount filesystem. %s",
 			"If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
 	    else
 		ESP_LOGI(TAG, "Failed to initialize the card (error %d, %s). %s", ret,  esp_err_to_name(ret),
 			"Make sure SD card lines have pull-up resistors in place.");
-	    return _host.state();
+	    return host.state();
 	}; /* if _host.state() != ESP_OK */
 
 	ESP_LOGI(TAG, "Filesystem mounted at the %s", mountpath_c());
 
-	return _host.state();
+	return host.state();
     }; /* SD::MMC::Device::mount(Card&, const std::string&) */
 
 
@@ -550,17 +554,17 @@ namespace SD //-----------------------------------------------------------------
 	    return ESP_ERR_NOT_FOUND;
 	}; /* if card */
 
-	_host.unmount(mountpath(), *card);
-	if (_host.state() != ESP_OK)
+	host.unmount(mountpath(), *card);
+	if (host.state() != ESP_OK)
 	{
-	    ESP_LOGE(TAG, "Error: %d, %s", _host.state(), esp_err_to_name(ret));
-	    return _host.state();
+	    ESP_LOGE(TAG, "Error: %d, %s", host.state(), esp_err_to_name(ret));
+	    return host.state();
 	}; /* if _host.state() != ESP_OK */
 
 	ESP_LOGI(TAG, "Card at %s unmounted", mountpath_c());
 	card = nullptr;	// card is unmounted - clear this field as unmounted sign
 	clean_mountpath();
-	return _host.state();
+	return host.state();
     }; /* SD::MMC::Device::unmount */
 
     //    esp_err_t unmount(sdmmc_card_t *card);	// Unmount SD-card "card", mounted onto default mountpath

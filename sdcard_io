@@ -4,8 +4,8 @@
  * 	@file   sdcard_io
  *	@author	Solomatov A.A. (aso)
  *	@date	Created 20.09.2022
- *		Updated 29.04.2025
- *	@version 0.9.6.2
+ *		Updated 25.05.2025
+ *	@version 0.9.6.3
  *
  */
 
@@ -381,32 +381,44 @@ namespace SD //-----------------------------------------------------------------
     namespace MMC
     {
 
-	namespace slot
+//	namespace slot
+	struct slot
 	{
 	    /// slot number designation
-	    enum no: int8_t
+	    enum class no: int8_t
 	    {
-		number_0 = SDMMC_HOST_SLOT_0,
-		number_1 = SDMMC_HOST_SLOT_1,
-		one=number_1,
-		null=number_0,
+		_0 = SDMMC_HOST_SLOT_0,
+		_1 = SDMMC_HOST_SLOT_1,
+		one=_1,
+		null=_0,
 		def = one,
 		out_of_range = -1
 	    }; /* enum class SD::MMC::slot */
 
 	    /// slot flags
-	    enum flag: uint8_t
-	    {
+////	    enum flag: uint8_t
+//	    struct flag
+//	    {
+#if 0
 		none,
 		//default = none,
 		pullup	= SDMMC_SLOT_FLAG_INTERNAL_PULLUP,
 		wp_high	= SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH,
 		uhs1	= SDMMC_SLOT_FLAG_UHS1,
-	    }; /* enum SD::MMC::slot::flag */
+#endif
+		static constexpr uint8_t none = 0;
+		static constexpr uint8_t def = none;
+		static constexpr uint8_t pullup  = SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+		static constexpr uint8_t wp_high = SDMMC_SLOT_FLAG_WP_ACTIVE_HIGH;
+		static constexpr uint8_t uhs1	 = SDMMC_SLOT_FLAG_UHS1;
+//	    }; /* struct SD::MMC::slot::flag */
+////	    }; /* enum SD::MMC::slot::flag */
 
-	    constexpr uint32_t flag2uint32(flag flg) { return static_cast<uint32_t>(flg); };
-	}; /* namespace SD::MMC::slot */
+//	    constexpr uint32_t flag2uint32(flag flg) { return static_cast<uint32_t>(flg); };
+	}; /* struct SD::MMC::slot */
+//	}; /* namespace SD::MMC::slot */
 
+#if 0
 	constexpr uint32_t operator | (uint32_t uleft, slot::flag right) {
 		return (uleft | static_cast<uint32_t>(right));
 	}
@@ -419,6 +431,7 @@ namespace SD //-----------------------------------------------------------------
 
 	constexpr uint32_t& operator |=(uint32_t& acc, slot::flag flg) { return acc |= static_cast<uint32_t>(flg); };
 	constexpr uint32_t  operator ~(slot::flag flg) { return ~static_cast<uint32_t>(flg); };
+#endif
 
 
 #if 0
@@ -525,11 +538,11 @@ namespace SD //-----------------------------------------------------------------
 		return cfg.flags;
 	    };
 
-	    constexpr uint32_t set_flags(slot::flag sflag) {
+	    constexpr uint32_t set_flags(/*slot::flag*/ uint8_t sflag) {
 		return cfg.flags |= sflag;
 	    }
 
-	    constexpr uint32_t clear_flags(slot::flag sflag) {
+	    constexpr uint32_t clear_flags(/*slot::flag*/ uint8_t sflag) {
 		return cfg.flags &= ~sflag;
 	    }
 	
@@ -1277,7 +1290,7 @@ namespace SD //-----------------------------------------------------------------
 	    Slot(MMC::pullup pullup_st = pullup::no, wp::active level = wp::active::low, uhs mode = uhs::no);
 #endif
 
-	    Device(const Slot& exslot, slot::no no, uint32_t flags = 0, int maxfreq = SDMMC_FREQ_DEFAULT, /*pullup pullup_st = pullup::no,
+	    Device(const Slot& exslot, slot::no no = slot::no::def, uint32_t flags = 0, int maxfreq = SDMMC_FREQ_DEFAULT, /*pullup pullup_st = pullup::no,
 		    wp::active level = wp::active::low, uhs mode = uhs::no,
 //		    bus::width = bus::width::def, pullup = pullup::no,*/
 		    /*esp_vfs_fat_sdmmc_mount_config_t&&*/ const FAT::mount::config&/*&*/ mnt_cfg = FAT::mount::def/*(esp_vfs_fat_sdmmc_mount_config_t)(VFS_FAT_MOUNT_DEFAULT_CONFIG())*/
@@ -1305,7 +1318,7 @@ namespace SD //-----------------------------------------------------------------
 			mnt.allocation_unit_size = mnt_cfg.allocation_unit_size;
 			}; /* SD::MMC::Device::Device(bus::width, Host::Pullup, esp_vfs_fat_sdmmc_mount_config_t&) */
 #endif
-	    Device(const Slot& exslot, slot::no no, uint32_t flags = 0, int maxfreq = SDMMC_FREQ_DEFAULT,
+	    Device(const Slot& exslot, slot::no no, uint32_t flags, int maxfreq = SDMMC_FREQ_DEFAULT,
 		    SD::Card::format autofmt = Card::format::no,
 		    int mxfiles = 5, size_t unitsz = 16 * 1024, bool diskst_chk = false, bool one_fat = false,
 //		    bus::width = bus::width::def, pullup = pullup::no);
@@ -1370,7 +1383,7 @@ mnt.disk_status_check_enable = disk_st_chk;
 	    // @note  use сarefully! may be incorrect behavior!
 	    // @param num  new slot number
 	    // @return    prev slot number
-	    int slot_no(int num) {/*return*/ host.slot_no((num == 0)? slot::number_0: ((num == 1)? slot::number_1: slot::out_of_range)); return host.slot_no();}
+	    int slot_no(int num) {/*return*/ host.slot_no((num == 0)? slot::no::_0: ((num == 1)? slot::no::_1: slot::no::out_of_range)); return host.slot_no();}
 
 	    Card* card = nullptr;
 
