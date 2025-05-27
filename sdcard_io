@@ -5,7 +5,7 @@
  *	@author	Solomatov A.A. (aso)
  *	@date	Created 20.09.2022
  *		Updated 27.05.2025
- *	@version 0.9.6.4
+ *	@version 0.9.6.5
  *
  */
 
@@ -310,7 +310,8 @@ namespace SD //-----------------------------------------------------------------
 	}; /* namespace SD::MMC::bus */
 
 
-	struct slot
+	/// @brief SD::MMC::Slot class for emcapsulating struct sdmmc_slot_config_t
+	struct Slot
 	{
 	    /// slot number designation
 	    enum class no: int8_t
@@ -333,12 +334,6 @@ namespace SD //-----------------------------------------------------------------
 		static constexpr uint8_t uhs1	 = SDMMC_SLOT_FLAG_UHS1;
 	    }; /* struct SD::MMC::slot::flag */
 
-	}; /* struct SD::MMC::slot */
-
-
-	/// @brief SD::MMC::Slot class for emcapsulating struct sdmmc_slot_config_t
-	struct Slot
-	{
 
 	    constexpr Slot() {};	///< Default config - Slot configured to Slot_1
 	    constexpr Slot(uint32_t sflags, bus::width swidth = bus::width::def) {
@@ -446,7 +441,7 @@ namespace SD //-----------------------------------------------------------------
 	    //! Default constructor
 	    constexpr Host(Slot& extslot): SD::Host(inner), inner(this, extslot) {};
 
-	    constexpr Host(slot::no no, Slot& extslot, uint32_t setflags = 0, int maxfreq = SDMMC_FREQ_DEFAULT):
+	    constexpr Host(Slot::no no, Slot& extslot, uint32_t setflags = 0, int maxfreq = SDMMC_FREQ_DEFAULT):
 	    SD::Host(inner),
 	    inner(this, extslot)
 	    { };
@@ -470,7 +465,7 @@ namespace SD //-----------------------------------------------------------------
 
 	    /// @warning use сarefully! may be incorrect behavior!
 	    int constexpr slot_no() const { return instance.slot; };
-	    void constexpr slot_no(SD::MMC::slot::no num) {
+	    void constexpr slot_no(SD::MMC::Slot::no num) {
 		instance.slot = static_cast<int>(num);
 	    }; /* SD::MMC::Host::slot_no(Slot::number) */
 
@@ -1111,13 +1106,13 @@ namespace SD //-----------------------------------------------------------------
 	// - Implementation the mount & unmount methods.
 	struct Device
 	{
-	    Device(const Slot& exslot, slot::no no = slot::no::def, uint32_t flags = 0, int maxfreq = SDMMC_FREQ_DEFAULT,
+	    Device(const Slot& exslot, Slot::no no = Slot::no::def, uint32_t flags = 0, int maxfreq = SDMMC_FREQ_DEFAULT,
 		    const FAT::mount::config& mnt_cfg = FAT::mount::def):
 		host(no, slot, flags, maxfreq),
 		slot(exslot),
 		mnt(mnt_cfg)
 	    { };
-	    Device(const Slot& exslot, slot::no no, uint32_t flags, int maxfreq = SDMMC_FREQ_DEFAULT,
+	    Device(const Slot& exslot, Slot::no no, uint32_t flags, int maxfreq = SDMMC_FREQ_DEFAULT,
 		    SD::Card::format autofmt = Card::format::no, int mxfiles = 5, size_t unitsz = 16 * 1024,
 		    bool diskst_chk = false, bool one_fat = false, bus::width width = bus::width::def):
 		    host(no, slot, flags, maxfreq),
@@ -1135,7 +1130,7 @@ namespace SD //-----------------------------------------------------------------
 	    // Please check its source code and implement error recovery when developing
 	    // production applications.
 
-	    Host  host;
+	    Host host;
 	    Slot slot;
 
 
@@ -1162,7 +1157,7 @@ namespace SD //-----------------------------------------------------------------
 	    // @note  use сarefully! may be incorrect behavior!
 	    // @param num  new slot number
 	    // @return    prev slot number
-	    int slot_no(int num) {host.slot_no((num == 0)? slot::no::_0: ((num == 1)? slot::no::_1: slot::no::out_of_range)); return host.slot_no();}
+	    int slot_no(int num) {host.slot_no((num == 0)? Slot::no::_0: ((num == 1)? Slot::no::_1: Slot::no::out_of_range)); return host.slot_no();}
 
 	    Card* card = nullptr;
 
